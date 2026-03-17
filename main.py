@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session
+from werkzeug.security import generate_password_hash, check_password_hash
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 from sqlalchemy import text, or_, and_
 from typing import Optional
@@ -201,7 +202,7 @@ def login():
             remaining = int((user.locked_until - time.time()) / 60) + 1
             return f"<script>alert('로그인 5회 실패로 계정이 잠겼습니다.\\n{remaining}분 후 다시 시도하거나 비밀번호 찾기를 이용해주세요.'); history.back();</script>"
 
-        if user.password == input_pw:
+        if check_password_hash(user.password, input_pw):
             # 로그인 성공 → 실패 횟수 초기화
             user.failed_attempts = 0
             user.locked_until = None
@@ -317,7 +318,7 @@ def signup_process():
         if existing:
             return "<script>alert('이미 가입된 이메일입니다.'); history.back();</script>"
 
-        new_user = User(username=u_id, password=u_pw, nickname=u_nickname)
+        new_user = User(username=u_id, password=generate_password_hash(u_pw), nickname=u_nickname)
         db_session.add(new_user)
         db_session.commit()
 
@@ -393,7 +394,7 @@ def reset_password():
         if not user:
             return "<script>alert('사용자를 찾을 수 없습니다.'); history.back();</script>"
 
-        user.password = new_pw
+        user.password = generate_password_hash(new_pw)
         user.failed_attempts = 0
         user.locked_until = None
         db_session.add(user)
