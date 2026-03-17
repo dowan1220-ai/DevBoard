@@ -1,54 +1,36 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-from werkzeug.security import generate_password_hash, check_password_hash
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 from sqlalchemy import text, or_, and_
+from authlib.integrations.flask_client import OAuth
 from typing import Optional
+from dotenv import load_dotenv
 
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import random
 import time
+import os
+
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'rlawldhrladmstjrlaehdhks'
 
-def send_verification_email(receiver_email, auth_code, subject="[서비스 이름] 인증번호입니다."):
-    sender_email = "jok10com@gmail.com"
-    app_password = "mdsv afzd egvx ancu"
-
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = receiver_email
-    msg['Subject'] = subject
-
-    body = f"""
-    안녕하세요, 요청하신 인증번호를 안내해 드립니다.
-
-    인증번호: [{auth_code}]
-
-    해당 번호를 인증 창에 입력해 주세요.
-    """
-    msg.attach(MIMEText(body, 'plain'))
-
-    try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(sender_email, app_password)
-            server.send_message(msg)
-        print(f"성공: {receiver_email}로 인증번호를 보냈습니다.")
-        return True
-    except Exception as e:
-        print(f"오류 발생: {e}")
-        return False
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
+    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'},
+)
 
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    username: str
-    password: str
+    username: str                                  # 구글 email
+    google_id: Optional[str] = Field(default=None)
+    password: Optional[str] = Field(default=None)  # 미사용 (하위 호환)
     nickname: Optional[str] = Field(default=None)
-    failed_attempts: int = Field(default=0)       # 로그인 실패 횟수
-    locked_until: Optional[float] = Field(default=None)  # 잠금 해제 시각 (Unix timestamp)
+    failed_attempts: int = Field(default=0)
+    locked_until: Optional[float] = Field(default=None)
     is_admin: bool = Field(default=False)
 
 
@@ -152,6 +134,7 @@ with app.app_context():
             "ALTER TABLE profile ADD COLUMN bio VARCHAR DEFAULT ''",
             "ALTER TABLE notification ADD COLUMN notif_type VARCHAR DEFAULT 'interest'",
             "ALTER TABLE user ADD COLUMN is_admin BOOLEAN DEFAULT 0",
+            "ALTER TABLE user ADD COLUMN google_id VARCHAR",
         ):
             try:
                 conn.execute(text(col_sql))
@@ -181,50 +164,68 @@ def login_page():
     return render_template('login.html', show_toast=show_toast)
 
 
-# ───────────── 로그인 ─────────────
-@app.route('/login', methods=['POST'])
-def login():
-    input_id = request.form.get('email')
-    input_pw = request.form.get('password')
+# ───────────── Google OAuth ─────────────
+@app.route('/auth/google')
+def google_login():
+    redirect_uri = url_for('google_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
 
-    if not input_id or not input_pw:
-        return "<script>alert('아이디와 비밀번호를 입력해주세요.'); history.back();</script>"
+
+@app.route('/auth/google/callback')
+def google_callback():
+    token = google.authorize_access_token()
+    userinfo = token.get('userinfo')
+    if not userinfo:
+        return redirect(url_for('login_page'))
+
+    google_id = userinfo['sub']
+    email = userinfo['email']
 
     with Session(engine) as db_session:
-        statement = select(User).where(User.username == input_id)
-        user = db_session.exec(statement).first()
-
+        user = db_session.exec(select(User).where(User.google_id == google_id)).first()
         if not user:
-            return "<script>alert('아이디 또는 비밀번호가 틀렸습니다.'); history.back();</script>"
+            # 신규 유저 → 닉네임 설정 페이지로
+            session['pending_google_id'] = google_id
+            session['pending_email'] = email
+            return redirect(url_for('set_nickname_page'))
+        # 기존 유저 → 바로 로그인
+        session['user_id'] = user.username
+        session['nickname'] = user.nickname or user.username
+        session['show_login_toast'] = True
+        return redirect(url_for('home'))
 
-        # 잠금 여부 확인
-        if user.locked_until and time.time() < user.locked_until:
-            remaining = int((user.locked_until - time.time()) / 60) + 1
-            return f"<script>alert('로그인 5회 실패로 계정이 잠겼습니다.\\n{remaining}분 후 다시 시도하거나 비밀번호 찾기를 이용해주세요.'); history.back();</script>"
 
-        if check_password_hash(user.password, input_pw):
-            # 로그인 성공 → 실패 횟수 초기화
-            user.failed_attempts = 0
-            user.locked_until = None
-            db_session.add(user)
-            db_session.commit()
-            session['user_id'] = user.username
-            session['nickname'] = user.nickname or user.username
-            session['show_login_toast'] = True
-            return redirect(url_for('home'))
-        else:
-            # 로그인 실패 → 실패 횟수 증가
-            user.failed_attempts += 1
-            if user.failed_attempts >= 5:
-                user.locked_until = time.time() + 30 * 60  # 30분 잠금
-                db_session.add(user)
-                db_session.commit()
-                return "<script>alert('비밀번호를 5회 틀렸습니다.\\n30분간 로그인이 잠깁니다. 비밀번호 찾기를 이용해주세요.'); history.back();</script>"
-            else:
-                remaining = 5 - user.failed_attempts
-                db_session.add(user)
-                db_session.commit()
-                return f"<script>alert('아이디 또는 비밀번호가 틀렸습니다.\\n(남은 시도 횟수: {remaining}회)'); history.back();</script>"
+@app.route('/set_nickname')
+def set_nickname_page():
+    if not session.get('pending_google_id'):
+        return redirect(url_for('login_page'))
+    return render_template('set-nickname.html')
+
+
+@app.route('/set_nickname', methods=['POST'])
+def set_nickname_submit():
+    google_id = session.get('pending_google_id')
+    email = session.get('pending_email')
+    nickname = request.form.get('nickname', '').strip()
+
+    if not google_id or not email:
+        return redirect(url_for('login_page'))
+    if not nickname:
+        return "<script>alert('닉네임을 입력해주세요.'); history.back();</script>"
+    if len(nickname) > 20:
+        return "<script>alert('닉네임은 20자 이하여야 합니다.'); history.back();</script>"
+
+    with Session(engine) as db_session:
+        new_user = User(username=email, google_id=google_id, nickname=nickname)
+        db_session.add(new_user)
+        db_session.commit()
+
+    session.pop('pending_google_id', None)
+    session.pop('pending_email', None)
+    session['user_id'] = email
+    session['nickname'] = nickname
+    session['show_login_toast'] = True
+    return redirect(url_for('home'))
 
 
 # ───────────── 홈 / 로그아웃 ─────────────
@@ -240,171 +241,6 @@ def logout():
     return redirect(url_for('index'))
 
 
-# ───────────── 회원가입 ─────────────
-@app.route('/signup')
-def signup_page():
-    return render_template('first-login.html')
-
-@app.route('/check_email', methods=['POST'])
-def check_email():
-    email_local = request.form.get('email', '').strip()
-    if not email_local:
-        return {"exists": False}
-    with Session(engine) as db_session:
-        existing = db_session.exec(select(User).where(User.username == email_local)).first()
-    return {"exists": bool(existing)}
-
-
-@app.route('/send_code', methods=['POST'])
-def send_code():
-    email_local = request.form.get('email', '').strip()
-    if not email_local:
-        return {"success": False, "message": "이메일을 입력해주세요."}, 400
-
-    # 이미 가입된 이메일인지 확인
-    with Session(engine) as db_session:
-        existing = db_session.exec(select(User).where(User.username == email_local)).first()
-    if existing:
-        return {"success": False, "message": "이미 가입된 이메일입니다."}, 400
-
-    code = str(random.randint(100000, 999999)).zfill(6)
-    session['verification_code'] = code
-    session['verified_email_local'] = email_local
-    session['email_verified'] = False
-
-    full_email = f"{email_local}@gmail.com"
-    sent = send_verification_email(full_email, code, "[서비스 이름] 회원가입 인증번호입니다.")
-    if sent:
-        return {"success": True, "message": "인증번호를 발송했습니다. 이메일을 확인해주세요."}
-    return {"success": False, "message": "인증번호 발송에 실패했습니다."}, 500
-
-
-@app.route('/verify_code', methods=['POST'])
-def verify_code():
-    email_local = request.form.get('email', '').strip()
-    code = request.form.get('code', '').strip()
-
-    if not email_local or not code:
-        return {"success": False, "message": "이메일과 인증번호를 모두 입력해주세요."}, 400
-
-    expected_email_local = session.get('verified_email_local')
-    expected_code = session.get('verification_code')
-
-    if not expected_code or not expected_email_local:
-        return {"success": False, "message": "먼저 인증번호를 요청해주세요."}, 400
-    if email_local != expected_email_local:
-        return {"success": False, "message": "이메일이 변경되었습니다. 인증번호를 다시 요청해주세요."}, 400
-    if code == expected_code:
-        session['email_verified'] = True
-        return {"success": True, "message": "인증이 완료되었습니다.", "buttonText": "인증완료"}
-
-    return {"success": False, "message": "인증번호가 일치하지 않습니다."}, 400
-
-
-@app.route('/signup_process', methods=['POST'])
-def signup_process():
-    u_id = request.form.get('email')
-    u_pw = request.form.get('password')
-    u_nickname = request.form.get('nickname', '').strip()
-
-    if not u_id or not u_pw or not u_nickname:
-        return "<script>alert('정보를 모두 입력해주세요.'); history.back();</script>"
-    if not session.get('email_verified') or session.get('verified_email_local') != u_id:
-        return "<script>alert('이메일 인증을 완료해주세요.'); history.back();</script>"
-
-    # 최종 중복 확인
-    with Session(engine) as db_session:
-        existing = db_session.exec(select(User).where(User.username == u_id)).first()
-        if existing:
-            return "<script>alert('이미 가입된 이메일입니다.'); history.back();</script>"
-
-        new_user = User(username=u_id, password=generate_password_hash(u_pw), nickname=u_nickname)
-        db_session.add(new_user)
-        db_session.commit()
-
-    session.pop('email_verified', None)
-    session.pop('verification_code', None)
-    session.pop('verified_email_local', None)
-
-    return render_template("go-login.html")
-
-
-# ───────────── 비밀번호 찾기 ─────────────
-@app.route('/forgot_password')
-def forgot_password_page():
-    return render_template('forgot-password.html')
-
-
-@app.route('/send_reset_code', methods=['POST'])
-def send_reset_code():
-    email_local = request.form.get('email', '').strip()
-    if not email_local:
-        return {"success": False, "message": "이메일을 입력해주세요."}, 400
-
-    full_email = f"{email_local}@gmail.com"
-
-    # 가입된 이메일인지 확인
-    with Session(engine) as db_session:
-        statement = select(User).where(User.username == email_local)
-        user = db_session.exec(statement).first()
-
-    if not user:
-        return {"success": False, "message": "가입되지 않은 이메일입니다."}, 400
-
-    code = str(random.randint(100000, 999999)).zfill(6)
-    session['reset_code'] = code
-    session['reset_email'] = email_local
-
-    sent = send_verification_email(full_email, code, "[서비스 이름] 비밀번호 재설정 인증번호입니다.")
-    if sent:
-        return {"success": True, "message": "인증번호를 발송했습니다. 이메일을 확인해주세요."}
-    return {"success": False, "message": "인증번호 발송에 실패했습니다."}, 500
-
-
-@app.route('/verify_reset_code', methods=['POST'])
-def verify_reset_code():
-    email_local = request.form.get('email', '').strip()
-    code = request.form.get('code', '').strip()
-
-    if not email_local or not code:
-        return {"success": False, "message": "이메일과 인증번호를 모두 입력해주세요."}, 400
-
-    if session.get('reset_email') != email_local:
-        return {"success": False, "message": "이메일이 변경되었습니다. 다시 요청해주세요."}, 400
-    if session.get('reset_code') != code:
-        return {"success": False, "message": "인증번호가 일치하지 않습니다."}, 400
-
-    session['reset_verified'] = True
-    return {"success": True, "message": "인증이 완료되었습니다."}
-
-
-@app.route('/reset_password', methods=['POST'])
-def reset_password():
-    new_pw = request.form.get('password', '').strip()
-    email_local = session.get('reset_email')
-
-    if not session.get('reset_verified') or not email_local:
-        return "<script>alert('인증을 먼저 완료해주세요.'); history.back();</script>"
-    if not new_pw:
-        return "<script>alert('새 비밀번호를 입력해주세요.'); history.back();</script>"
-
-    with Session(engine) as db_session:
-        statement = select(User).where(User.username == email_local)
-        user = db_session.exec(statement).first()
-        if not user:
-            return "<script>alert('사용자를 찾을 수 없습니다.'); history.back();</script>"
-
-        user.password = generate_password_hash(new_pw)
-        user.failed_attempts = 0
-        user.locked_until = None
-        db_session.add(user)
-        db_session.commit()
-
-    session.pop('reset_code', None)
-    session.pop('reset_email', None)
-    session.pop('reset_verified', None)
-
-    return "<script>alert('비밀번호가 변경되었습니다. 다시 로그인해주세요.'); location.href='/';</script>"
 
 
 # ───────────── 회원 정보 수정 ─────────────

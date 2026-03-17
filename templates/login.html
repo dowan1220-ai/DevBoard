@@ -3,41 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- [수정 4] CSS 경로 ../static/ → /static/ (Flask 템플릿에서 상대경로 ../static/ 작동 안 함) -->
     <link rel="stylesheet" href="/static/css/login.css">
-    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/4.0.0/uicons-solid-rounded/css/uicons-solid-rounded.css'>
-    <title>Document</title>
+    <title>로그인</title>
+    <style>
+        .google-login-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 14px 0;
+            background: #fff;
+            color: #3c4043;
+            border: 1.5px solid #dadce0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.15s, box-shadow 0.15s;
+            margin-top: 8px;
+        }
+        .google-login-btn:hover {
+            background: #f8f9fa;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+        }
+        .google-login-btn img {
+            width: 22px;
+            height: 22px;
+        }
+        .login-box-title {
+            font-size: 22px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 28px;
+            color: #1a1a2e;
+        }
+        .login-desc {
+            text-align: center;
+            color: #888;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
     <div class="toast" id="toast">✅ 로그인에 성공했습니다!</div>
     <box>
-        <form action="/login" method="POST" >
         <div class="login">
             <h2 class="gg">로그인</h2>
-            <div class="email-wrapper">
-                    <!-- [수정 5] id="emailId" → id="email" (login.js의 getElementById('email')과 일치시킴) -->
-                    <input type="text" placeholder="이메일 아이디" class="email" id="email" oninput="formatEmail()" name="email">
-                    <span class="email-domain">@gmail.com</span>
-            </div>
-
-            <div class="password-wrapper">
-                <input type="text" placeholder="비밀번호를 입력하세요" class="password" id="pw1" name="password">
-                <i class="fi fi-sr-eye-crossed toggle-pw" id="togglePw1" onclick="togglePassword('pw1', 'togglePw1')"></i>
-            </div>
-
-            <button class="enter">로그인</button>
-            <div class="first-login">
-                <a class="first-login-font" href="/signup">회원가입</a>
-                <span class="divider">|</span>
-                <a class="first-login-font" href="/forgot_password">비밀번호 찾기</a>
-            </div>
+            <a href="/auth/google" class="google-login-btn">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                Google로 로그인
+            </a>
+            <p class="login-desc">구글 계정으로 간편하게 로그인하세요</p>
         </div>
-        </form>
-
     </box>
 
-    <!-- [수정 6] JS 경로 ../static/ → /static/ -->
-    <script src="/static/js/login.js"></script>
     <script>
         {% if show_toast %}
         const toast = document.getElementById('toast');

@@ -2,3 +2,6 @@ flask
 werkzeug
 sqlmodel
 sqlalchemy
+authlib
+requests
+python-dotenv
