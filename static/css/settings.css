@@ -1,0 +1,234 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-image: url(/static/images/background.png);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-family: sans-serif;
+}
+
+/* ── 상단 바 ── */
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    padding: 16px 32px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.back-btn {
+    text-decoration: none;
+    color: #555;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.06);
+    transition: background 0.2s;
+}
+
+.back-btn:hover {
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.page-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.welcome {
+    font-size: 15px;
+    font-weight: bold;
+    color: #333;
+}
+
+.logout-btn {
+    text-decoration: none;
+    background-color: rgb(143, 203, 255);
+    color: #333;
+    padding: 8px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.logout-btn:hover {
+    background-color: rgb(100, 170, 240);
+}
+
+/* ── 페이지 ── */
+.page-content {
+    display: flex;
+    justify-content: center;
+    padding: 48px 24px;
+}
+
+.settings-card {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    width: 100%;
+    max-width: 480px;
+    padding: 36px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 8px 0 24px;
+}
+
+.section-title {
+    font-size: 15px;
+    font-weight: bold;
+    color: #333;
+}
+
+.section-desc {
+    font-size: 13px;
+    color: #888;
+    margin-top: -6px;
+}
+
+.divider {
+    height: 1px;
+    background: #eee;
+    margin-bottom: 24px;
+}
+
+/* ── 계정 정보 ── */
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f8f8f8;
+    border-radius: 12px;
+    padding: 14px 18px;
+}
+
+.info-label {
+    font-size: 13px;
+    font-weight: bold;
+    color: #888;
+    min-width: 52px;
+}
+
+.info-value {
+    font-size: 14px;
+    color: #333;
+}
+
+/* ── 닉네임 폼 ── */
+.nickname-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.input-wrap {
+    position: relative;
+}
+
+.nickname-input {
+    width: 100%;
+    padding: 13px 52px 13px 18px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.nickname-input:focus {
+    border-color: rgb(143, 203, 255);
+}
+
+.char-count {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: #bbb;
+    pointer-events: none;
+}
+
+.input-error {
+    font-size: 13px;
+    color: #e53e3e;
+    padding-left: 4px;
+}
+
+.input-error.hidden {
+    display: none;
+}
+
+.save-btn {
+    padding: 13px;
+    background: linear-gradient(135deg, rgb(143, 203, 255), rgb(100, 170, 240));
+    color: white;
+    font-size: 15px;
+    font-weight: bold;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+}
+
+.save-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.save-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ── 성공 토스트 ── */
+.success-toast {
+    background: #4caf50;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 12px 18px;
+    border-radius: 10px;
+    text-align: center;
+    transition: opacity 0.3s;
+}
+
+.success-toast.hidden {
+    display: none;
+}
