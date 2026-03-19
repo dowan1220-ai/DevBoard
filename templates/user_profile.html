@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark');</script>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/notif.css">
+    <title>{{ target_nickname }}님의 프로필</title>
+    <style>
+        .profile-page { max-width: 720px; margin: 100px auto 60px; padding: 0 20px; }
+        .profile-hero { background: var(--card-bg, #fff); border-radius: 20px; padding: 36px; display: flex; align-items: center; gap: 24px; box-shadow: 0 2px 16px rgba(0,0,0,0.07); margin-bottom: 24px; }
+        .profile-avatar-lg { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: #fff; flex-shrink: 0; }
+        .profile-hero-info h2 { margin: 0 0 6px; font-size: 22px; }
+        .profile-hero-info p { margin: 0; color: #888; font-size: 14px; }
+        .profile-dm-btn { margin-left: auto; padding: 10px 20px; background: #667eea; color: #fff; border: none; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .profile-dm-btn:hover { background: #5a67d8; }
+        .profile-section { background: var(--card-bg, #fff); border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 20px; }
+        .profile-section h3 { margin: 0 0 16px; font-size: 16px; color: #555; font-weight: 700; }
+        .recruit-card { border: 1.5px solid #eee; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+        .recruit-card:last-child { margin-bottom: 0; }
+        .recruit-card-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+        .recruit-card-meta { font-size: 13px; color: #888; margin-bottom: 8px; }
+        .recruit-card-bio { font-size: 13px; color: #555; margin-bottom: 8px; }
+        .lang-chip { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; background: #f0f0f0; margin: 2px; }
+        .team-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+        .team-row:last-child { border-bottom: none; }
+        .team-role { font-size: 12px; padding: 2px 8px; border-radius: 20px; background: #e8f4fd; color: #3182ce; font-weight: 600; }
+        .team-role.leader { background: #fef3c7; color: #d97706; }
+        .team-name { font-weight: 600; font-size: 14px; }
+        .team-field { font-size: 12px; color: #888; }
+        .empty-state { text-align: center; color: #aaa; padding: 24px 0; font-size: 14px; }
+        .dark .profile-hero, .dark .profile-section { background: #1e2035; }
+        .dark .recruit-card { border-color: #2d2f45; }
+        .dark .lang-chip { background: #2d2f45; color: #ccc; }
+        .dark .team-row { border-color: #2d2f45; }
+        .dark .profile-hero-info p { color: #888; }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="topbar-left">
+            <a href="/main" class="site-logo">💻 DevBoard</a>
+            <span class="welcome">👋 {{ user_id }}님</span>
+        </div>
+        <nav class="topbar-nav">
+            <a href="/recruit" class="nav-link">구인 게시판</a>
+            <a href="/notice" class="nav-link">공지사항</a>
+        </nav>
+        <div class="topbar-right">
+            <div class="dm-wrap" id="dmWrap">
+                <button class="dm-topbar-btn" id="dmBtn" title="DM">💬<span class="dm-unread-badge hidden" id="dmBadge"></span></button>
+            </div>
+            <div class="notif-wrap" id="notifWrap">
+                <button class="bell-btn" id="bellBtn">🔔<span class="notif-badge hidden" id="notifBadge"></span></button>
+            </div>
+            <button class="darkmode-btn" id="darkToggle">🌙</button>
+            {% if is_admin %}
+            <a href="/admin" class="admin-link-btn">🛡️ 관리자</a>
+            {% endif %}
+            <a href="/settings" class="settings-btn">⚙️ 프로필 편집</a>
+            <a href="/logout" class="logout-btn">로그아웃</a>
+        </div>
+    </div>
+
+    <div class="profile-page">
+        <!-- 프로필 헤더 -->
+        <div class="profile-hero">
+            <div class="profile-avatar-lg" id="avatarEl"></div>
+            <div class="profile-hero-info">
+                <h2>{{ target_nickname }}</h2>
+                <p>{{ target_username }}</p>
+            </div>
+            {% if not is_self %}
+            <button class="profile-dm-btn" id="profileDmBtn">💬 메시지 보내기</button>
+            {% endif %}
+        </div>
+
+        <!-- 구인 게시글 -->
+        <div class="profile-section">
+            <h3>📋 구인 게시글</h3>
+            {% if profiles %}
+                {% for p in profiles %}
+                <div class="recruit-card">
+                    <div class="recruit-card-name">{{ p.name }}</div>
+                    <div class="recruit-card-meta">{{ p.major }} · {{ p.class_number }}</div>
+                    {% if p.bio %}<div class="recruit-card-bio">{{ p.bio }}</div>{% endif %}
+                    <div>
+                        {% for lang in p.current_languages %}
+                        <span class="lang-chip">{{ lang }}</span>
+                        {% endfor %}
+                        {% for lang in p.past_languages %}
+                        <span class="lang-chip" style="opacity:0.6;">{{ lang }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">등록된 구인 게시글이 없습니다</div>
+            {% endif %}
+        </div>
+
+        <!-- 팀 활동 -->
+        <div class="profile-section">
+            <h3>🚀 팀 활동</h3>
+            {% if teams %}
+                {% for t in teams %}
+                <div class="team-row">
+                    <span class="team-role {% if t.role == '팀장' %}leader{% endif %}">{{ t.role }}</span>
+                    <div>
+                        <div class="team-name">{{ t.name }}</div>
+                        <div class="team-field">{{ t.dev_field }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">참여 중인 팀이 없습니다</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- DM 패널 -->
+    <div class="dm-panel" id="dmPanel">
+        <div class="dm-panel-header">
+            <button class="dm-back-btn hidden" id="dmBackBtn">←</button>
+            <span class="dm-panel-title" id="dmPanelTitle">💬 메시지</span>
+            <button class="dm-panel-close" id="dmPanelClose">✕</button>
+        </div>
+        <div class="dm-panel-body" id="dmPanelBody">
+            <div class="dm-empty">대화 내용이 없습니다</div>
+        </div>
+        <div class="dm-input-area hidden" id="dmInputArea">
+            <input type="text" class="dm-input" id="dmInput" placeholder="메시지를 입력하세요..." maxlength="500">
+            <button class="dm-send-btn" id="dmSendBtn">↑</button>
+        </div>
+    </div>
+
+    <script src="/static/js/dm.js"></script>
+    <script src="/static/js/notif.js"></script>
+    <script>
+        // 아바타 색상
+        const COLORS = ['#667eea','#f093fb','#4facfe','#43e97b','#fa709a','#ff9a56','#a18cd1'];
+        const nick = {{ target_nickname | tojson }};
+        const targetId = {{ target_username | tojson }};
+        const avatarEl = document.getElementById('avatarEl');
+        avatarEl.style.background = COLORS[nick.charCodeAt(0) % COLORS.length];
+        avatarEl.textContent = nick.charAt(0);
+
+        // 프로필 DM 버튼
+        const profileDmBtn = document.getElementById('profileDmBtn');
+        if (profileDmBtn) {
+            profileDmBtn.addEventListener('click', () => {
+                window.DM.openChat(targetId, nick);
+            });
+        }
+
+        // 다크모드
+        const darkToggle = document.getElementById('darkToggle');
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark');
+            darkToggle.textContent = '☀️';
+        }
+        darkToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            const isDark = document.body.classList.contains('dark');
+            darkToggle.textContent = isDark ? '☀️' : '🌙';
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
+    </script>
+</body>
+</html>

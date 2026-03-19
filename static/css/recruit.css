@@ -25,7 +25,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .topbar-left {
@@ -61,6 +61,34 @@ body {
     flex-shrink: 0;
     white-space: nowrap;
 }
+
+.topbar-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: #555;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    background: rgba(91,94,247,0.1);
+    color: #5b5ef7;
+}
+
+body.dark .nav-link { color: #aaa; }
+body.dark .nav-link:hover,
+body.dark .nav-link.active { background: rgba(120,120,255,0.15); color: #a0a3ff; }
 
 .welcome {
     font-size: 15px;
@@ -151,7 +179,7 @@ body {
 
 /* ── 구인하기 버튼 ── */
 .recruit-interest-btn {
-    margin-top: 8px;
+    margin-top: auto;
     width: 100%;
     padding: 9px;
     border: 1.5px solid #5b5ef7;
@@ -193,6 +221,58 @@ body {
 .section-header p {
     font-size: 15px;
     opacity: 0.9;
+}
+
+/* ── 게시판 검색창 ── */
+.board-search-wrap {
+    display: flex;
+    align-items: center;
+    max-width: 420px;
+    margin: -16px auto 28px;
+    background: rgba(255,255,255,0.18);
+    backdrop-filter: blur(10px);
+    border: 1.5px solid rgba(255,255,255,0.35);
+    border-radius: 14px;
+    padding: 10px 16px;
+    gap: 8px;
+    transition: background 0.2s, border-color 0.2s;
+}
+.board-search-wrap:focus-within {
+    background: rgba(255,255,255,0.28);
+    border-color: rgba(255,255,255,0.65);
+}
+.board-search-icon { font-size: 15px; flex-shrink: 0; }
+.board-search-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    color: #fff;
+    outline: none;
+}
+.board-search-input::placeholder { color: rgba(255,255,255,0.6); }
+.board-search-clear {
+    border: none; background: none; cursor: pointer;
+    color: rgba(255,255,255,0.7); font-size: 13px; padding: 0 2px;
+    flex-shrink: 0;
+}
+.board-search-clear:hover { color: #fff; }
+.board-search-empty {
+    text-align: center;
+    color: rgba(255,255,255,0.75);
+    font-size: 15px;
+    padding: 48px 0;
+}
+.board-search-empty.hidden { display: none; }
+
+/* 다크모드 검색창 */
+body.dark .board-search-wrap {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.15);
+}
+body.dark .board-search-wrap:focus-within {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.3);
 }
 
 /* ── 카드 그리드 ── */
@@ -285,6 +365,97 @@ body {
     border: 2px solid rgba(143, 203, 255, 0.6);
 }
 
+/* 팀 카드에서 mine-badge가 버튼과 겹치지 않게 */
+.card-team .mine-badge {
+    right: 12px;
+}
+
+/* ── 내 팀 카드 슬라이드 액션 패널 ── */
+.card-team.card-mine {
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+    padding: 0;
+}
+.tc-inner {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px;
+    min-width: 0;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.card-team.card-mine:hover .tc-inner {
+    transform: translateX(-6px);
+}
+.tc-side {
+    width: 0;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(180deg, rgba(91,94,247,0.07) 0%, rgba(224,85,122,0.07) 100%);
+    border-left: 1.5px solid transparent;
+    transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 0.28s;
+}
+.card-team.card-mine:hover .tc-side {
+    width: 76px;
+    border-color: rgba(91,94,247,0.15);
+}
+.tc-edit-btn,
+.tc-delete-btn {
+    border: none;
+    border-radius: 12px;
+    width: 52px;
+    padding: 8px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 0.18s, transform 0.15s;
+    white-space: nowrap;
+}
+.tc-edit-btn span,
+.tc-delete-btn span {
+    font-size: 11px;
+    font-weight: 600;
+}
+.tc-edit-btn {
+    background: rgba(91,94,247,0.1);
+    color: #5b5ef7;
+}
+.tc-edit-btn:hover {
+    background: rgba(91,94,247,0.22);
+    transform: scale(1.06);
+}
+.tc-delete-btn {
+    background: rgba(229,57,53,0.1);
+    color: #e53935;
+}
+.tc-delete-btn:hover {
+    background: rgba(229,57,53,0.22);
+    transform: scale(1.06);
+}
+body.dark .tc-side {
+    background: linear-gradient(180deg, rgba(91,94,247,0.12) 0%, rgba(224,85,122,0.1) 100%);
+}
+body.dark .tc-edit-btn {
+    background: rgba(91,94,247,0.18);
+    color: #888cf0;
+}
+body.dark .tc-delete-btn {
+    background: rgba(229,57,53,0.18);
+    color: #f47272;
+}
+
 /* ── 삭제 버튼 ── */
 .card-delete-btn {
     position: absolute;
@@ -306,7 +477,8 @@ body {
     z-index: 2;
 }
 
-.card-profile:hover .card-delete-btn {
+.card-profile:hover .card-delete-btn,
+.card-team:hover .card-delete-btn {
     opacity: 1;
 }
 
@@ -335,7 +507,8 @@ body {
     z-index: 2;
 }
 
-.card-profile:hover .card-edit-btn {
+.card-profile:hover .card-edit-btn,
+.card-team:hover .card-edit-btn {
     opacity: 1;
 }
 
@@ -553,7 +726,7 @@ body {
 
 /* ── 팀 액션 버튼 ── */
 .team-join-btn {
-    margin-top: 6px;
+    margin-top: auto;
     width: 100%;
     padding: 10px;
     border: none;
@@ -566,7 +739,80 @@ body {
     transition: opacity 0.2s;
 }
 .team-join-btn:hover { opacity: 0.85; }
-.team-actions { display: flex; gap: 8px; margin-top: 6px; }
+.team-actions { display: flex; gap: 8px; margin-top: auto; }
+.team-leave-btn {
+    padding: 9px 14px;
+    border: 1.5px solid #e0a020;
+    border-radius: 12px;
+    background: rgba(224,160,32,0.08);
+    color: #c8891a;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+.team-leave-btn:hover { background: rgba(224,160,32,0.18); }
+body.dark .team-leave-btn { border-color: rgba(224,160,32,0.5); color: #e0c060; background: rgba(224,160,32,0.08); }
+.team-card-img-wrap {
+    width: 100%;
+    height: 100px;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+.team-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.team-field-select-btn {
+    padding: 7px 14px;
+    border: 1.5px solid #ddd;
+    border-radius: 20px;
+    background: #f5f5f5;
+    color: #555;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.team-field-select-btn.active {
+    background: #667eea;
+    border-color: #667eea;
+    color: #fff;
+}
+body.dark .team-field-select-btn { background: #2a2a3e; border-color: #444; color: #aaa; }
+body.dark .team-field-select-btn.active { background: #667eea; border-color: #667eea; color: #fff; }
+.team-edit-btn {
+    padding: 9px 14px;
+    border: 1.5px solid #43b89c;
+    border-radius: 12px;
+    background: rgba(67,184,156,0.08);
+    color: #43b89c;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.team-edit-btn:hover { background: rgba(67,184,156,0.16); }
+.edit-field-btn {
+    padding: 7px 14px;
+    border: 1.5px solid #ddd;
+    border-radius: 20px;
+    background: #f5f5f5;
+    color: #555;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.edit-field-btn.active {
+    background: #667eea;
+    border-color: #667eea;
+    color: #fff;
+}
+body.dark .edit-field-btn { background: #2a2a3e; border-color: #444; color: #aaa; }
+body.dark .edit-field-btn.active { background: #667eea; border-color: #667eea; color: #fff; }
+body.dark .team-edit-btn { border-color: #43b89c; color: #43b89c; background: rgba(67,184,156,0.08); }
 .team-manage-btn {
     flex: 1;
     padding: 9px;
@@ -606,10 +852,10 @@ body {
     margin-left: 4px;
     vertical-align: middle;
 }
-.team-joined-badge  { margin-top:6px; text-align:center; font-size:13px; font-weight:bold; color:#27ae60; padding:8px; background:rgba(39,174,96,0.08); border-radius:10px; }
-.team-pending-badge { margin-top:6px; text-align:center; font-size:13px; font-weight:bold; color:#e0a020; padding:8px; background:rgba(224,160,32,0.08); border-radius:10px; }
-.team-rejected-badge{ margin-top:6px; text-align:center; font-size:13px; color:#aaa; padding:8px; background:rgba(0,0,0,0.05); border-radius:10px; }
-.team-full-badge    { margin-top:6px; text-align:center; font-size:13px; color:#aaa; padding:8px; background:rgba(0,0,0,0.05); border-radius:10px; }
+.team-joined-badge  { margin-top:auto; text-align:center; font-size:13px; font-weight:bold; color:#27ae60; padding:8px; background:rgba(39,174,96,0.08); border-radius:10px; }
+.team-pending-badge { margin-top:auto; text-align:center; font-size:13px; font-weight:bold; color:#e0a020; padding:8px; background:rgba(224,160,32,0.08); border-radius:10px; }
+.team-rejected-badge{ margin-top:auto; text-align:center; font-size:13px; color:#aaa; padding:8px; background:rgba(0,0,0,0.05); border-radius:10px; }
+.team-full-badge    { margin-top:auto; text-align:center; font-size:13px; color:#aaa; padding:8px; background:rgba(0,0,0,0.05); border-radius:10px; }
 
 /* ── 팀 관리 모달 ── */
 .pending-row {
@@ -1389,7 +1635,7 @@ body.dark .card-plus:hover {
 }
 
 /* 팀 카드 */
-body.dark .team-card {
+body.dark .card-team {
     background: rgba(35, 35, 60, 0.95);
     border-color: rgba(255,255,255,0.08);
 }
@@ -1482,12 +1728,41 @@ body.dark .dm-input {
 body.dark .dm-input::placeholder { color: #555; }
 body.dark .dm-empty, body.dark .dm-loading { color: #555; }
 
+/* ── 다크모드 누락 보완 ── */
+body.dark .team-leader { color: #aaa; }
+body.dark .team-joined-badge  { background: rgba(39,174,96,0.15);  color: #5bcfa0; }
+body.dark .team-pending-badge { background: rgba(224,160,32,0.15); color: #e0c060; }
+body.dark .team-full-badge    { background: rgba(255,255,255,0.05); color: #666; }
+body.dark .team-rejected-badge { background: rgba(224,85,85,0.12); color: #e06060; }
+body.dark .team-manage-btn    { border-color: rgba(155,158,247,0.5); color: #9b9ef7; background: rgba(91,94,247,0.1); }
+body.dark .team-delete-btn    { border-color: rgba(224,85,85,0.4); color: #e06060; background: rgba(224,85,85,0.06); }
+body.dark .pending-row        { background: rgba(255,255,255,0.04); border-bottom-color: rgba(255,255,255,0.06); }
+body.dark .pending-name       { color: #ddd; }
+body.dark .card-divider       { border-color: rgba(255,255,255,0.07); }
+body.dark .team-members-label { color: #888; }
+body.dark .member-slot-empty  { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); }
+body.dark .bio-textarea       { background: #1e1e32 !important; color: #ccc !important; border-color: #444 !important; }
+body.dark .bio-textarea::placeholder { color: #555 !important; }
+
 /* ── 반응형 ── */
 @media (max-width: 820px) {
     .cards-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+.site-footer {
+    text-align: center;
+    padding: 24px 16px;
+    margin-top: 40px;
+    border-top: 1px solid rgba(0,0,0,0.08);
+    font-size: 13px;
+}
+.site-footer a { color: #888; text-decoration: none; }
+.site-footer a:hover { color: #667eea; }
+.dark .site-footer { border-top-color: rgba(255,255,255,0.08); }
+.dark .site-footer a { color: #666; }
+.dark .site-footer a:hover { color: #a78bfa; }
 
 @media (max-width: 520px) {
     .cards-grid {

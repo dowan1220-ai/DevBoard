@@ -7,6 +7,9 @@
     <title>회원 정보 수정</title>
 </head>
 <body>
+    <script>
+        if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
+    </script>
     <div class="topbar">
         <div class="topbar-left">
             <a href="/main" class="back-btn">← 홈</a>
@@ -100,5 +103,8 @@
             }
         });
     </script>
+    <footer class="site-footer">
+        <a href="https://github.com/dowan1220-ai/DevBoard" target="_blank" rel="noopener">📂 오픈소스 코드</a>
+    </footer>
 </body>
 </html>

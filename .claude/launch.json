@@ -3,9 +3,9 @@
   "configurations": [
     {
       "name": "DevBoard Flask",
-      "runtimeExecutable": "python",
+      "runtimeExecutable": "python3",
       "runtimeArgs": ["main.py"],
-      "port": 8000
+      "port": 9000
     }
   ]
 }

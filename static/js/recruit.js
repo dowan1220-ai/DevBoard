@@ -10,6 +10,13 @@ let currentTab = 'recruit';
 let selectedTeamField = '';
 let teamMaxMembers = 4;
 let editingProfileId = null;
+let editingTeamId = null;
+let teamImageBase64 = '';
+let teamImageRemoved = false;
+
+// ─── 검색용 캐시 ───
+let cachedProfiles = [];
+let cachedTeams    = [];
 
 function escapeHtml(str) {
     const d = document.createElement('div');
@@ -38,6 +45,12 @@ document.querySelectorAll('.board-tab').forEach(btn => {
         document.getElementById('pageTitle').textContent    = m.title;
         document.getElementById('sectionTitle').textContent = m.h2;
         document.getElementById('sectionSub').textContent   = m.sub;
+        // 탭 전환 시 검색어 초기화
+        const si = document.getElementById('boardSearchInput');
+        if (si) { si.value = ''; si.placeholder = currentTab === 'team' ? '팀 이름으로 검색...' : '이름으로 검색...'; }
+        const sc = document.getElementById('boardSearchClear');
+        if (sc) sc.classList.add('hidden');
+        document.getElementById('boardSearchEmpty')?.classList.add('hidden');
         loadProfiles();
     });
 });
@@ -129,6 +142,37 @@ function compressImage(file, maxSize, quality) {
     });
 }
 
+// ─── 팀 이미지 ───
+function syncTeamImageDeleteBtn() {
+    const hasImg = !!(teamImageBase64 && !teamImageRemoved);
+    document.getElementById('teamImageRemoveBtn').classList.toggle('hidden', !hasImg);
+}
+document.getElementById('teamChangePhotoBtn').addEventListener('click', () => document.getElementById('teamImageInput').click());
+document.getElementById('teamImagePreview').addEventListener('click', () => document.getElementById('teamImageInput').click());
+document.getElementById('teamImageRemoveBtn').addEventListener('click', () => {
+    teamImageBase64 = '';
+    teamImageRemoved = true;
+    document.getElementById('teamImagePreview').innerHTML = '<span class="photo-icon">📷</span>';
+    syncTeamImageDeleteBtn();
+});
+document.getElementById('teamImageInput').addEventListener('change', e => {
+    const file = e.target.files[0]; if (!file) return;
+    compressImage(file, 300, 0.8).then(url => {
+        teamImageBase64 = url;
+        teamImageRemoved = false;
+        document.getElementById('teamImagePreview').innerHTML = `<img src="${url}" alt="팀 이미지">`;
+        syncTeamImageDeleteBtn();
+    });
+});
+
+// ─── 팀 분야 선택 버튼 ───
+document.querySelectorAll('.team-field-select-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        selectedTeamField = btn.dataset.field;
+        document.querySelectorAll('.team-field-select-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+});
+
 // ─── 언어 입력 ───
 document.getElementById('past-lang-input').addEventListener('keydown', e => {
     if (e.key==='Enter') { e.preventDefault(); addCustomLang('past', e.target.value); e.target.value=''; }
@@ -158,7 +202,6 @@ function openEditModal(profile) {
     document.getElementById('modalTitle').textContent = '구인 수정';
     document.querySelector('#profileForm .btn-submit').textContent = '수정하기';
     document.getElementById('profileForm').reset();
-    document.getElementById('inp-name').value = profile.name || '';
     document.getElementById('inp-class').value = profile.class_number || '';
     document.getElementById('inp-major').value = profile.major || '';
     document.getElementById('inp-bio').value = profile.bio || '';
@@ -193,17 +236,50 @@ document.getElementById('modalOverlay').addEventListener('click', e => {
 
 // ─── 팀 생성 모달 ───
 function openTeamModal() {
-    document.getElementById('teamForm').reset();
+    editingTeamId = null;
+    teamImageBase64 = '';
+    teamImageRemoved = false;
     selectedTeamField = '';
     teamMaxMembers = 4;
+    document.getElementById('teamForm').reset();
+    document.getElementById('teamModalTitle').textContent = '팀 만들기';
+    document.getElementById('teamSubmitBtn').textContent = '팀 만들기';
     document.getElementById('countDisplay').textContent = 4;
     document.getElementById('teamFormError').textContent = '';
+    document.getElementById('teamImagePreview').innerHTML = '<span class="photo-icon">📷</span>';
+    syncTeamImageDeleteBtn();
+    document.querySelectorAll('.team-field-select-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('teamModalOverlay').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+function openTeamEditModal(team) {
+    editingTeamId = team.id;
+    teamImageBase64 = team.team_image || '';
+    teamImageRemoved = false;
+    selectedTeamField = team.dev_field || '';
+    teamMaxMembers = team.max_members;
+    document.getElementById('teamModalTitle').textContent = '팀 수정';
+    document.getElementById('teamSubmitBtn').textContent = '수정하기';
+    document.getElementById('team-name').value = team.name;
+    document.getElementById('team-desc').value = team.description || '';
+    document.getElementById('countDisplay').textContent = team.max_members;
+    document.getElementById('teamFormError').textContent = '';
+    if (team.team_image) {
+        document.getElementById('teamImagePreview').innerHTML = `<img src="${team.team_image}" alt="팀 이미지">`;
+    } else {
+        document.getElementById('teamImagePreview').innerHTML = '<span class="photo-icon">📷</span>';
+    }
+    syncTeamImageDeleteBtn();
+    document.querySelectorAll('.team-field-select-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.field === selectedTeamField);
+    });
     document.getElementById('teamModalOverlay').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 }
 function closeTeamModal() {
     document.getElementById('teamModalOverlay').classList.add('hidden');
     document.body.style.overflow = '';
+    editingTeamId = null;
 }
 document.getElementById('teamModalClose').addEventListener('click', closeTeamModal);
 document.getElementById('teamModalOverlay').addEventListener('click', e => {
@@ -214,14 +290,50 @@ document.getElementById('teamModalOverlay').addEventListener('click', e => {
 function openManageModal(team) {
     document.getElementById('manageModalTitle').textContent = `${team.name} 관리`;
     const body = document.getElementById('manageModalBody');
-    if (team.pending_list.length === 0) {
-        body.innerHTML = '<p style="text-align:center; color:#aaa; padding:32px 0;">참여 신청이 없습니다.</p>';
+    body.innerHTML = '';
+
+    // ── 현재 팀원 목록 ──
+    const memberSection = document.createElement('div');
+    memberSection.style.cssText = 'margin-bottom:20px;';
+    memberSection.innerHTML = `<p style="font-size:13px;font-weight:bold;color:#555;margin-bottom:8px;">현재 팀원 (${team.members.length}명)</p><div id="memberList"></div>`;
+    body.appendChild(memberSection);
+    const memberList = document.getElementById('memberList');
+    if (team.members.length === 0) {
+        memberList.innerHTML = '<p style="font-size:13px;color:#aaa;">팀원이 없습니다.</p>';
     } else {
-        body.innerHTML = `
-            <p style="font-size:13px; color:#888; margin-bottom:16px;">참여 신청 ${team.pending_list.length}건</p>
-            <div id="pendingList"></div>
-        `;
-        const list = document.getElementById('pendingList');
+        team.members.forEach(m => {
+            const row = document.createElement('div');
+            row.className = 'pending-row';
+            row.id = `member-row-${m.id}`;
+            row.innerHTML = `
+                <span class="pending-name">${escapeHtml(m.display_name)}</span>
+                <button class="pending-reject" data-id="${m.id}" data-team="${team.id}">내보내기</button>
+            `;
+            memberList.appendChild(row);
+        });
+        memberList.querySelectorAll('.pending-reject').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!confirm(`${btn.closest('.pending-row').querySelector('.pending-name').textContent}님을 내보낼까요?`)) return;
+                const res = await fetch(`/api/teams/${team.id}/members/${btn.dataset.id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById(`member-row-${btn.dataset.id}`)?.remove();
+                    loadProfiles();
+                } else {
+                    alert(data.error || '오류');
+                }
+            });
+        });
+    }
+
+    // ── 3. 참여 신청 목록 ──
+    const pendingSection = document.createElement('div');
+    pendingSection.innerHTML = `<p style="font-size:13px;font-weight:bold;color:#555;margin-bottom:8px;">참여 신청 ${team.pending_list.length}건</p><div id="pendingList"></div>`;
+    body.appendChild(pendingSection);
+    const list = document.getElementById('pendingList');
+    if (team.pending_list.length === 0) {
+        list.innerHTML = '<p style="font-size:13px;color:#aaa;">신청이 없습니다.</p>';
+    } else {
         team.pending_list.forEach(m => {
             const row = document.createElement('div');
             row.className = 'pending-row';
@@ -242,6 +354,7 @@ function openManageModal(team) {
             btn.addEventListener('click', () => respondTeam(btn.dataset.team, btn.dataset.id, 'reject', btn));
         });
     }
+
     document.getElementById('manageModalOverlay').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 }
@@ -276,15 +389,16 @@ async function respondTeam(teamId, memberId, action, btn) {
 // ─── 구인/구직 폼 제출 ───
 document.getElementById('profileForm').addEventListener('submit', async e => {
     e.preventDefault();
-    const name = document.getElementById('inp-name').value.trim();
     const classNum = document.getElementById('inp-class').value.trim();
     const major = document.getElementById('inp-major').value.trim();
     const bio = document.getElementById('inp-bio').value.trim();
     const errorEl = document.getElementById('formError');
-    if (!name || !classNum || !major) { errorEl.textContent = '이름, 반/번호, 전공은 필수입니다.'; return; }
+    if (!classNum || !major) { errorEl.textContent = '반/번호, 전공은 필수입니다.'; return; }
+    if (currLangs.size === 0) { errorEl.textContent = '공부중인 언어를 1개 이상 추가해주세요.'; return; }
+    if (bio.length > 50) { errorEl.textContent = '소갯글은 50자 이내여야 합니다.'; return; }
     errorEl.textContent = '';
     const fd = new FormData();
-    fd.append('name', name); fd.append('class_number', classNum); fd.append('major', major);
+    fd.append('class_number', classNum); fd.append('major', major);
     fd.append('bio', bio);
     fd.append('past_languages', [...pastLangs].join(','));
     fd.append('current_languages', [...currLangs].join(','));
@@ -304,25 +418,34 @@ document.getElementById('profileForm').addEventListener('submit', async e => {
     finally { btn.disabled=false; btn.textContent = isEditing ? '수정하기' : '등록하기'; }
 });
 
-// ─── 팀 생성 폼 제출 ───
+// ─── 팀 생성/수정 폼 제출 ───
 document.getElementById('teamForm').addEventListener('submit', async e => {
     e.preventDefault();
     const name = document.getElementById('team-name').value.trim();
     const desc = document.getElementById('team-desc').value.trim();
     const errorEl = document.getElementById('teamFormError');
     if (!name) { errorEl.textContent = '팀 이름을 입력해주세요.'; return; }
+    if (desc.length > 50) { errorEl.textContent = '팀 소개는 50자 이내여야 합니다.'; return; }
     errorEl.textContent = '';
     const fd = new FormData();
-    fd.append('name', name); fd.append('description', desc);
-    fd.append('dev_field', ''); fd.append('max_members', teamMaxMembers);
-    const btn = document.querySelector('#teamForm .btn-submit'); btn.disabled=true; btn.textContent='생성 중...';
+    fd.append('name', name);
+    fd.append('description', desc);
+    fd.append('dev_field', selectedTeamField);
+    fd.append('max_members', teamMaxMembers);
+    if (teamImageBase64) fd.append('team_image', teamImageBase64);
+    else if (teamImageRemoved) fd.append('team_image', '');
+    const btn = document.getElementById('teamSubmitBtn');
+    const isEditing = editingTeamId !== null;
+    btn.disabled = true; btn.textContent = isEditing ? '수정 중...' : '생성 중...';
     try {
-        const res = await fetch('/api/teams', {method:'POST', body:fd});
+        const url = isEditing ? `/api/teams/${editingTeamId}` : '/api/teams';
+        const method = isEditing ? 'PUT' : 'POST';
+        const res = await fetch(url, {method, body:fd});
         const data = await res.json();
         if (data.success) { closeTeamModal(); loadProfiles(); }
         else errorEl.textContent = data.error || '오류가 발생했습니다.';
     } catch { errorEl.textContent = '오류가 발생했습니다.'; }
-    finally { btn.disabled=false; btn.textContent='팀 만들기'; }
+    finally { btn.disabled = false; btn.textContent = isEditing ? '수정하기' : '팀 만들기'; }
 });
 
 // ─── 카드 생성 ───
@@ -417,6 +540,7 @@ function createProfileCard(profile) {
         card.style.cursor = 'pointer';
         card.addEventListener('click', (e) => {
             if (e.target.closest('button')) return;
+            e.stopPropagation(); // 바깥 클릭 닫기 리스너가 DM을 즉시 닫지 않도록
             openDmFromProfile(profile);
         });
     }
@@ -445,6 +569,7 @@ function createProfileCard(profile) {
 function createTeamCard(team) {
     const card = document.createElement('div');
     card.className = `card card-team${team.is_mine ? ' card-mine' : ''}`;
+    card.dataset.id = team.id;
     const s = DEV_FIELD_STYLE[team.dev_field] || {bg:'rgba(0,0,0,0.08)',color:'#555',emoji:'💻'};
     const memberCount = team.members.length;
     const isFull = memberCount >= team.max_members;
@@ -468,10 +593,9 @@ function createTeamCard(team) {
                 <button class="team-manage-btn" data-id="${team.id}">
                     ⚙️ 신청 관리 ${team.pending_count > 0 ? `<span class="pending-badge">${team.pending_count}</span>` : ''}
                 </button>
-                <button class="team-delete-btn" data-id="${team.id}">삭제</button>
             </div>`;
     } else if (team.my_status === 'accepted') {
-        actionHtml = `<div class="team-joined-badge">✅ 참여 중</div>`;
+        actionHtml = `<div class="team-actions"><div class="team-joined-badge" style="flex:1;">✅ 참여 중</div><button class="team-leave-btn" data-id="${team.id}">나가기</button></div>`;
     } else if (team.my_status === 'pending') {
         actionHtml = `<div class="team-pending-badge">⏳ 신청 중</div>`;
     } else if (team.my_status === 'rejected') {
@@ -482,23 +606,44 @@ function createTeamCard(team) {
         actionHtml = `<div class="team-full-badge">정원 마감</div>`;
     }
 
-    card.innerHTML = `
-        ${team.is_mine ? '<div class="mine-badge">내 팀</div>' : ''}
-        <div class="team-field-badge" style="background:${s.bg};color:${s.color};">${s.emoji} ${escapeHtml(team.dev_field)}</div>
-        <div class="team-name">${escapeHtml(team.name)}</div>
-        <div class="team-leader">👑 ${escapeHtml(team.leader_name)}</div>
-        ${team.description ? `<div class="team-desc">${escapeHtml(team.description)}</div>` : ''}
-        <div class="card-divider"></div>
-        <div class="team-members-label">
-            <span>팀원</span>
-            <span class="team-member-count">${memberCount}/${team.max_members}명</span>
-        </div>
-        <div class="team-member-slots">
-            ${memberAvatars}
-            ${emptySlots}
-        </div>
-        ${actionHtml}
-    `;
+    if (team.is_mine) {
+        card.innerHTML = `
+            <div class="tc-inner">
+                <div class="mine-badge">내 팀</div>
+                ${team.team_image ? `<div class="team-card-img-wrap"><img class="team-card-img" src="${team.team_image}" alt="팀 이미지"></div>` : ''}
+                <div class="team-field-badge" style="background:${s.bg};color:${s.color};">${s.emoji} ${escapeHtml(team.dev_field || '기타')}</div>
+                <div class="team-name">${escapeHtml(team.name)}</div>
+                <div class="team-leader">👑 ${escapeHtml(team.leader_name)}</div>
+                ${team.description ? `<div class="team-desc">${escapeHtml(team.description)}</div>` : ''}
+                <div class="card-divider"></div>
+                <div class="team-members-label">
+                    <span>팀원</span>
+                    <span class="team-member-count">${memberCount}/${team.max_members}명</span>
+                </div>
+                <div class="team-member-slots">${memberAvatars}${emptySlots}</div>
+                ${actionHtml}
+            </div>
+            <div class="tc-side">
+                <button class="tc-edit-btn" title="수정">✏️<span>수정</span></button>
+                <button class="tc-delete-btn" title="삭제">🗑️<span>삭제</span></button>
+            </div>
+        `;
+    } else {
+        card.innerHTML = `
+            ${team.team_image ? `<div class="team-card-img-wrap"><img class="team-card-img" src="${team.team_image}" alt="팀 이미지"></div>` : ''}
+            <div class="team-field-badge" style="background:${s.bg};color:${s.color};">${s.emoji} ${escapeHtml(team.dev_field || '기타')}</div>
+            <div class="team-name">${escapeHtml(team.name)}</div>
+            <div class="team-leader">👑 ${escapeHtml(team.leader_name)}</div>
+            ${team.description ? `<div class="team-desc">${escapeHtml(team.description)}</div>` : ''}
+            <div class="card-divider"></div>
+            <div class="team-members-label">
+                <span>팀원</span>
+                <span class="team-member-count">${memberCount}/${team.max_members}명</span>
+            </div>
+            <div class="team-member-slots">${memberAvatars}${emptySlots}</div>
+            ${actionHtml}
+        `;
+    }
 
     // 이벤트
     const joinBtn = card.querySelector('.team-join-btn');
@@ -511,18 +656,37 @@ function createTeamCard(team) {
             else { alert(data.error || '오류 발생'); joinBtn.disabled=false; joinBtn.textContent='참여 신청'; }
         });
     }
-    const manageBtn = card.querySelector('.team-manage-btn');
-    if (manageBtn) {
-        manageBtn.addEventListener('click', () => openManageModal(team));
+    const leaveBtn = card.querySelector('.team-leave-btn');
+    if (leaveBtn) {
+        leaveBtn.addEventListener('click', async () => {
+            if (!confirm(`"${team.name}" 팀을 나가시겠습니까?`)) return;
+            leaveBtn.disabled = true; leaveBtn.textContent = '처리 중...';
+            const res = await fetch(`/api/teams/${team.id}/leave`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) loadProfiles();
+            else { alert(data.error || '오류 발생'); leaveBtn.disabled = false; leaveBtn.textContent = '나가기'; }
+        });
     }
-    const deleteBtn = card.querySelector('.team-delete-btn');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', async () => {
+    const tcEditBtn = card.querySelector('.tc-edit-btn');
+    if (tcEditBtn) {
+        tcEditBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openTeamEditModal(team);
+        });
+    }
+    const tcDeleteBtn = card.querySelector('.tc-delete-btn');
+    if (tcDeleteBtn) {
+        tcDeleteBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
             if (!confirm('팀을 삭제할까요?')) return;
             const res = await fetch(`/api/teams/${team.id}`, {method:'DELETE'});
             const data = await res.json();
             if (data.success) loadProfiles(); else alert(data.error || '삭제 실패');
         });
+    }
+    const manageBtn = card.querySelector('.team-manage-btn');
+    if (manageBtn) {
+        manageBtn.addEventListener('click', () => openManageModal(team));
     }
     return card;
 }
@@ -535,21 +699,20 @@ async function loadProfiles() {
         if (currentTab === 'team') {
             const res = await fetch('/api/teams');
             const data = await res.json();
-            grid.innerHTML = '';
-            grid.appendChild(createPlusCard());
-            data.teams.forEach(t => grid.appendChild(createTeamCard(t)));
+            cachedTeams = (data.teams || []).sort((a, b) => (b.is_mine ? 1 : 0) - (a.is_mine ? 1 : 0));
+            renderFiltered();
         } else {
             const res = await fetch(`/api/profiles?type=${currentTab}`);
             const data = await res.json();
-            grid.innerHTML = '';
-            const alreadyHaveMine = data.profiles.some(p => p.is_mine);
-            if (!alreadyHaveMine) grid.appendChild(createPlusCard());
-            data.profiles.forEach(p => grid.appendChild(createProfileCard(p)));
+            cachedProfiles = data.profiles || [];
+            renderFiltered();
         }
     } catch {
         grid.innerHTML = '<div class="loading">로딩 실패. 새로고침해주세요.</div>';
     }
 }
+
+// openTeamEditModal은 openTeamModal 섹션에 통합됨
 
 // ─── 알림 ───
 const bellBtn       = document.getElementById('bellBtn');
@@ -637,6 +800,77 @@ function openDmFromProfile(profile) {
         fetch(`/api/profiles/${profile.id}/view`, { method: 'POST' }).catch(() => {});
     }
     window.DM.openChat(profile.owner_id, profile.nickname || profile.name);
+}
+
+// ─── 검색 필터 렌더 ───
+function showEmpty(empty, query, count) {
+    if (!empty) return;
+    if (!query) { empty.classList.add('hidden'); return; }
+    if (count > 0) { empty.classList.add('hidden'); } else { empty.classList.remove('hidden'); }
+}
+
+function renderFiltered() {
+    const grid   = document.getElementById('cardsGrid');
+    const query  = (document.getElementById('boardSearchInput')?.value || '').trim().toLowerCase();
+    const empty  = document.getElementById('boardSearchEmpty');
+    grid.innerHTML = '';
+
+    if (currentTab === 'team') {
+        const filtered = cachedTeams.filter(t =>
+            t.name.toLowerCase().includes(query) ||
+            (t.leader_name || '').toLowerCase().includes(query)
+        );
+        const plusCard = createPlusCard();
+        plusCard.classList.add('fade-up');
+        plusCard.style.setProperty('--fu-delay', '0s');
+        grid.appendChild(plusCard);
+        filtered.forEach((t, i) => {
+            const card = createTeamCard(t);
+            card.classList.add('fade-up');
+            card.style.setProperty('--fu-delay', Math.min(i + 1, 10) * 0.05 + 's');
+            grid.appendChild(card);
+        });
+        showEmpty(empty, query, filtered.length);
+    } else {
+        const filtered = cachedProfiles.filter(p =>
+            (p.name || '').toLowerCase().includes(query)
+        );
+        const alreadyHaveMine = cachedProfiles.some(p => p.is_mine);
+        let idx = 0;
+        if (!alreadyHaveMine) {
+            const plusCard = createPlusCard();
+            plusCard.classList.add('fade-up');
+            plusCard.style.setProperty('--fu-delay', '0s');
+            grid.appendChild(plusCard);
+            idx = 1;
+        }
+        filtered.forEach((p, i) => {
+            const card = createProfileCard(p);
+            card.classList.add('fade-up');
+            card.style.setProperty('--fu-delay', Math.min(i + idx, 10) * 0.05 + 's');
+            grid.appendChild(card);
+        });
+        showEmpty(empty, query, filtered.length);
+    }
+}
+
+// ─── 검색 입력 이벤트 ───
+const boardSearchInput = document.getElementById('boardSearchInput');
+const boardSearchClear = document.getElementById('boardSearchClear');
+if (boardSearchInput) {
+    boardSearchInput.addEventListener('input', () => {
+        const hasVal = boardSearchInput.value.length > 0;
+        if (boardSearchClear) boardSearchClear.classList.toggle('hidden', !hasVal);
+        renderFiltered();
+    });
+}
+if (boardSearchClear) {
+    boardSearchClear.addEventListener('click', () => {
+        boardSearchInput.value = '';
+        boardSearchClear.classList.add('hidden');
+        document.getElementById('boardSearchEmpty')?.classList.add('hidden');
+        renderFiltered();
+    });
 }
 
 initPresets();

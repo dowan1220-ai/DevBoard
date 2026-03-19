@@ -9,6 +9,7 @@ document.querySelectorAll('.sidebar-item').forEach(btn => {
         const tab = btn.dataset.tab;
         document.getElementById(`tab-${tab}`).classList.add('active');
         if (tab === 'users') loadUsers();
+        if (tab === 'members') loadMembers();
     });
 });
 
@@ -17,6 +18,12 @@ function escHtml(str) {
     const d = document.createElement('div');
     d.textContent = str;
     return d.innerHTML;
+}
+function escAttr(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/'/g, '&#39;')
+        .replace(/"/g, '&quot;');
 }
 function timeStr(ts) {
     if (!ts) return '-';
@@ -55,6 +62,12 @@ async function loadNotices() {
             noticesCache[n.id] = n;   // 캐시에 저장
             const item = document.createElement('div');
             item.className = 'notice-item';
+            const actionsHtml = IS_SUPERADMIN
+                ? `<div class="notice-item-actions">
+                    <button class="btn-neutral" data-notice-id="${n.id}">✏️ 수정</button>
+                    <button class="btn-danger"  data-delete-id="${n.id}">🗑 삭제</button>
+                   </div>`
+                : '';
             item.innerHTML = `
                 <div class="notice-pin-icon ${n.is_pinned ? 'pinned' : ''}">📌</div>
                 <div class="notice-item-body">
@@ -65,14 +78,12 @@ async function loadNotices() {
                     <div class="notice-item-content">${escHtml(n.content)}</div>
                     <div class="notice-item-meta">${escHtml(n.author_nickname)} · ${timeStr(n.created_at)}${n.updated_at > n.created_at + 1 ? ' · (수정됨)' : ''}</div>
                 </div>
-                <div class="notice-item-actions">
-                    <button class="btn-neutral" data-notice-id="${n.id}">✏️ 수정</button>
-                    <button class="btn-danger"  data-delete-id="${n.id}">🗑 삭제</button>
-                </div>
+                ${actionsHtml}
             `;
-            // 인라인 onclick 대신 addEventListener로 처리 (특수문자 안전)
-            item.querySelector('[data-notice-id]').addEventListener('click', () => openEditNotice(n.id));
-            item.querySelector('[data-delete-id]').addEventListener('click', () => deleteNotice(n.id));
+            if (IS_SUPERADMIN) {
+                item.querySelector('[data-notice-id]').addEventListener('click', () => openEditNotice(n.id));
+                item.querySelector('[data-delete-id]').addEventListener('click', () => deleteNotice(n.id));
+            }
             list.appendChild(item);
         });
     } catch {
@@ -178,21 +189,28 @@ function renderUsers(users) {
         const lockLabel = u.is_locked
             ? `<span class="status-badge locked">🔒 잠금</span>`
             : `<span class="status-badge normal">✅ 정상</span>`;
-        const adminLabel = u.is_admin
-            ? `<span class="admin-badge-cell is-admin">🛡️ 관리자</span>`
-            : `<span class="admin-badge-cell not-admin">일반</span>`;
+        const adminLabel = u.is_owner
+            ? `<span class="admin-badge-cell is-admin">👑 총괄 관리자</span>`
+            : u.is_admin
+                ? `<span class="admin-badge-cell is-admin">🛡️ 관리자</span>`
+                : `<span class="admin-badge-cell not-admin">일반</span>`;
 
         const isSelf = u.username === CURRENT_ADMIN_ID;
         const actionHtml = isSelf
             ? `<span class="self-label">본인 계정</span>`
-            : `<div class="action-btns">
+            : IS_SUPERADMIN
+                ? `<div class="action-btns">
                     ${u.is_locked
                         ? `<button class="btn-success" onclick="unlockUser('${escAttr(u.username)}')">🔓 잠금해제</button>`
                         : `<button class="btn-warn" onclick="openLockModal('${escAttr(u.username)}', '${escAttr(u.nickname)}')">🔒 잠금</button>`
                     }
-                    <button class="btn-neutral" onclick="toggleAdmin('${escAttr(u.username)}')">${u.is_admin ? '관리자 해제' : '관리자 지정'}</button>
+                    ${u.is_admin
+                        ? (IS_OWNER ? `<button class="btn-neutral" onclick="toggleAdmin('${escAttr(u.username)}')">관리자 해제</button>` : '')
+                        : `<button class="btn-neutral" onclick="toggleAdmin('${escAttr(u.username)}')">관리자 지정</button>`
+                    }
                     <button class="btn-danger" onclick="deleteUser('${escAttr(u.username)}', '${escAttr(u.nickname)}')">🗑 삭제</button>
-               </div>`;
+                   </div>`
+                : `<span class="self-label">조회 전용</span>`;
 
         tr.innerHTML = `
             <td><span class="user-nickname">${escHtml(u.nickname)}${isSelf ? ' <span class="self-tag">나</span>' : ''}</span></td>
@@ -263,6 +281,49 @@ async function deleteUser(uid, nickname) {
         const res = await fetch(`/api/admin/users/${encodeURIComponent(uid)}`, { method: 'DELETE' });
         if (res.ok) loadUsers();
     } catch {}
+}
+
+// ════════════════════════════════
+//  가입자 보기
+// ════════════════════════════════
+async function loadMembers() {
+    const grid = document.getElementById('membersGrid');
+    grid.innerHTML = '<div class="admin-loading">불러오는 중...</div>';
+    try {
+        const res  = await fetch('/api/admin/users');
+        const data = await res.json();
+        const users = data.users || [];
+        if (!users.length) {
+            grid.innerHTML = '<div class="admin-loading">가입된 멤버가 없습니다</div>';
+            return;
+        }
+        grid.innerHTML = '';
+        const COLORS = ['#667eea','#f093fb','#4facfe','#43e97b','#fa709a','#ff9a56','#a18cd1'];
+        users.forEach(u => {
+            const card = document.createElement('div');
+            card.className = 'member-card';
+            const color = COLORS[u.nickname.charCodeAt(0) % COLORS.length];
+            const isSelf = u.username === CURRENT_ADMIN_ID;
+            card.innerHTML = `
+                <div class="member-card-avatar" style="background:${color};">${escHtml(u.nickname.charAt(0))}</div>
+                <div class="member-card-info">
+                    <div class="member-card-name">${escHtml(u.nickname)}${isSelf ? ' <span class="self-tag">나</span>' : ''}</div>
+                    <div class="member-card-id">${escHtml(u.username)}</div>
+                    ${u.is_locked ? '<div class="member-card-locked">🔒 잠금</div>' : ''}
+                </div>
+                ${!isSelf ? `<div class="member-dm-hint">💬 클릭해서 대화하기</div>` : ''}
+            `;
+            if (!isSelf) {
+                card.style.cursor = 'pointer';
+                card.addEventListener('click', () => {
+                    window.DM.openChat(u.username, u.nickname);
+                });
+            }
+            grid.appendChild(card);
+        });
+    } catch {
+        grid.innerHTML = '<div class="admin-loading">로딩 실패</div>';
+    }
 }
 
 // ── 초기 로드 ──

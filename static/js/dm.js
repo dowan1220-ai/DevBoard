@@ -30,11 +30,11 @@
     let pollTimer     = null;
 
     // ── 패널 열기/닫기 ──
-    function openPanel() {
+    function openPanel(loadConvs) {
         isOpen = true;
         const panel = el('dmPanel');
         if (panel) panel.classList.add('open');
-        if (!currentUserId) loadConversations();
+        if (loadConvs && !currentUserId) loadConversations();
     }
     function closePanel() {
         isOpen = false;
@@ -94,7 +94,7 @@
                     </div>
                     ${conv.unread > 0 ? `<div class="dm-conv-unread">${conv.unread}</div>` : ''}
                 `;
-                row.addEventListener('click', () => switchToChat(conv.user_id, conv.nickname));
+                row.addEventListener('click', (e) => { e.stopPropagation(); switchToChat(conv.user_id, conv.nickname); });
                 body.appendChild(row);
             });
         } catch {
@@ -182,12 +182,22 @@
         const sendBtn  = el('dmSendBtn');
         const input    = el('dmInput');
 
-        if (dmBtn)   dmBtn.addEventListener('click',  () => { isOpen ? closePanel() : openPanel(); });
+        if (dmBtn)   dmBtn.addEventListener('click',  () => { isOpen ? closePanel() : openPanel(true); });
         if (closeBtn) closeBtn.addEventListener('click', closePanel);
         if (backBtn)  backBtn.addEventListener('click',  switchToList);
         if (sendBtn)  sendBtn.addEventListener('click',  sendMsg);
         if (input)    input.addEventListener('keydown', e => {
-            if (e.key === 'Enter') { e.preventDefault(); sendMsg(); }
+            if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); sendMsg(); }
+        });
+
+        // 패널 바깥 클릭 시 닫기
+        document.addEventListener('click', (e) => {
+            if (!isOpen) return;
+            const panel  = el('dmPanel');
+            const dmBtn2 = el('dmBtn');
+            if (panel && !panel.contains(e.target) && dmBtn2 && !dmBtn2.contains(e.target)) {
+                closePanel();
+            }
         });
 
         // 초기 배지 + 주기적 업데이트
@@ -205,7 +215,7 @@
     window.DM = {
         /** 다른 유저와 DM 채팅 시작 */
         openChat: function (userId, nickname) {
-            if (!isOpen) openPanel();
+            if (!isOpen) openPanel(false);
             switchToChat(userId, nickname);
         }
     };

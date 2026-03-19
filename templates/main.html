@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/notif.css">
     <title>홈</title>
 </head>
 <body>
@@ -11,7 +12,7 @@
 
     <button class="scroll-top-btn" id="scrollTopBtn" title="맨 위로">⬆️</button>
 
-    <div class="topbar">
+    <div class="topbar fade-up" style="--fu-delay:0s">
         <div class="topbar-left">
             <a href="/main" class="site-logo">💻 DevBoard</a>
             <span class="welcome">👋 {{ user_id }}님</span>
@@ -19,6 +20,7 @@
         <nav class="topbar-nav">
             <a href="/recruit" class="nav-link" id="navRecruit">구인 게시판<span class="new-dot hidden" id="dotRecruit"></span></a>
             <a href="/notice" class="nav-link" id="navNotice">공지사항<span class="new-dot hidden" id="dotNotice"></span></a>
+            <a href="/members" class="nav-link">멤버 보기</a>
         </nav>
         <div class="topbar-center">
             <div class="search-wrap" id="searchWrap">
@@ -31,7 +33,9 @@
             <div class="dm-wrap" id="dmWrap">
                 <button class="dm-topbar-btn" id="dmBtn" title="DM">💬<span class="dm-unread-badge hidden" id="dmBadge"></span></button>
             </div>
-            <button class="bell-btn" title="알림">🔔</button>
+            <div class="notif-wrap" id="notifWrap">
+                <button class="bell-btn" id="bellBtn">🔔<span class="notif-badge hidden" id="notifBadge"></span></button>
+            </div>
             <button class="darkmode-btn" title="다크모드" id="darkToggle">🌙</button>
             {% if is_admin %}
             <a href="/admin" class="admin-link-btn">🛡️ 관리자</a>
@@ -39,50 +43,92 @@
             {% if user_id == '게스트' %}
             <a href="/login_page" class="login-hint-btn">로그인이 안되어있다면?</a>
             {% else %}
-            <a href="/settings" class="settings-btn">⚙️ 회원 정보 수정</a>
+            <a href="/settings" class="settings-btn">⚙️ 프로필 편집</a>
             <a href="/logout" class="logout-btn">로그아웃</a>
             {% endif %}
         </div>
     </div>
 
     <div class="content">
-        <h1 class="typing-text" id="typingText"></h1>
+        <h1 class="typing-text fade-up" id="typingText" style="--fu-delay:0.08s"></h1>
         <div class="nav-menu">
-            <a href="/recruit" class="nav-btn" id="btnRecruit">
+            <a href="/recruit" class="nav-btn fade-up" id="btnRecruit" style="--fu-delay:0.18s">
                 <span>👥</span>
                 <span>구인 게시판</span>
                 <span class="nav-btn-new hidden" id="btnDotRecruit">NEW</span>
             </a>
-            <a href="/notice" class="nav-btn" id="btnNotice">
+            <a href="/notice" class="nav-btn fade-up" id="btnNotice" style="--fu-delay:0.24s">
                 <span>📋</span>
                 <span>공지사항</span>
                 <span class="nav-btn-new hidden" id="btnDotNotice">NEW</span>
             </a>
         </div>
         <div class="stats-section">
-            <div class="stat-card">
+            <a href="/members" class="stat-card fade-up" style="text-decoration:none; --fu-delay:0.32s">
                 <span class="stat-num" id="statUsers">-</span>
                 <span class="stat-label">👤 가입자</span>
-            </div>
-            <div class="stat-card">
+            </a>
+            <div class="stat-card fade-up" style="--fu-delay:0.38s">
                 <span class="stat-num" id="statProfiles">-</span>
                 <span class="stat-label">🔍 구인 등록</span>
             </div>
         </div>
     </div>
-    <div class="footer-spacer"></div>
+    <div class="footer-spacer">
+        <section class="intro-section">
+            <div class="intro-grid">
+                <!-- 왼쪽 큰 카드 -->
+                <div class="intro-card intro-card-large">
+                    <div class="intro-img-wrap">
+                        <div class="intro-img-placeholder large">
+                            <span>💻</span>
+                            <span class="intro-img-label">DevBoard</span>
+                        </div>
+                    </div>
+                    <div class="intro-desc">
+                        <h2 class="intro-title">개발자들을 위한 협업 플랫폼</h2>
+                        <p>DevBoard는 개발에 관심 있는 학생들이 팀원을 찾고, 프로젝트를 함께 시작할 수 있도록 돕는 커뮤니티입니다. 구인 게시판에서 팀원을 모집하거나, 팀 게시판에서 팀을 만들어보세요.</p>
+                    </div>
+                </div>
+                <!-- 오른쪽 카드 2개 -->
+                <div class="intro-col">
+                    <a href="/recruit?tab=recruit" class="intro-card intro-card-small">
+                        <div class="intro-img-wrap">
+                            <div class="intro-img-placeholder small">
+                                <span>👥</span>
+                            </div>
+                        </div>
+                        <div class="intro-desc">
+                            <h3 class="intro-title">구인 게시판</h3>
+                            <p>내 프로필을 등록하거나 마음에 드는 개발자에게 바로 DM을 보내 팀을 구성해보세요.</p>
+                        </div>
+                    </a>
+                    <a href="/recruit?tab=team" class="intro-card intro-card-small">
+                        <div class="intro-img-wrap">
+                            <div class="intro-img-placeholder small">
+                                <span>🚀</span>
+                            </div>
+                        </div>
+                        <div class="intro-desc">
+                            <h3 class="intro-title">팀 게시판</h3>
+                            <p>팀을 직접 만들고 팀원을 모집하세요. 분야별로 팀을 찾아 프로젝트를 함께 시작할 수 있습니다.</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </div>
     <footer class="footer">
         <div class="footer-item">
             <span class="footer-label">버그제보</span>
             <span class="footer-link">1106김도완</span>
         </div>
-        <div class="footer-item">
-            <span class="footer-label">커뮤니티</span>
-            <span class="footer-link">플로우</span>
-        </div>
+
         <div class="footer-item">
             <span class="footer-label">오픈소스</span>
-            <span class="footer-link">코드링크</span>
+            <a class="footer-link" href="https://github.com/dowan1220-ai/DevBoard" target="_blank" rel="noopener">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px;"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>코드링크
+            </a>
         </div>
     </footer>
 
@@ -103,6 +149,7 @@
     </div>
 
     <script src="/static/js/dm.js"></script>
+    <script src="/static/js/notif.js"></script>
     <script>
         {% if show_toast %}
         const toast = document.getElementById('toast');
@@ -193,10 +240,10 @@
                         <div class="search-drop-avatar" style="background:${avatarColor};">${escapeHtml(u.nickname.charAt(0))}</div>
                         <div class="search-drop-info">
                             <div class="search-drop-name">${highlight(u.nickname, q)}</div>
-                            <div class="search-drop-sub">구인 게시판 보기 →</div>
+                            <div class="search-drop-sub">프로필 보기 →</div>
                         </div>`;
                     row.addEventListener('click', () => {
-                        window.location.href = '/recruit';
+                        window.location.href = `/user/${encodeURIComponent(u.username)}`;
                     });
                     searchDropdown.appendChild(row);
                 });
@@ -216,8 +263,24 @@
                 } catch { closeSearchDrop(); }
             }, 180);
         });
-        searchInput.addEventListener('keydown', e => {
-            if (e.key === 'Escape') { searchInput.value = ''; closeSearchDrop(); }
+        searchInput.addEventListener('keydown', async e => {
+            if (e.key === 'Escape') { searchInput.value = ''; closeSearchDrop(); return; }
+            if (e.key === 'Enter' && !e.isComposing) {
+                e.preventDefault();
+                const q = searchInput.value.trim();
+                if (!q) return;
+                clearTimeout(searchTimer);
+                try {
+                    const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+                    const data = await res.json();
+                    if (data.results && data.results.length > 0) {
+                        window.location.href = `/user/${encodeURIComponent(data.results[0].username)}`;
+                    } else {
+                        searchDropdown.innerHTML = '<div class="search-drop-empty">❌ 찾을 수 없습니다</div>';
+                        searchDropdown.classList.remove('hidden');
+                    }
+                } catch { closeSearchDrop(); }
+            }
         });
         document.addEventListener('click', e => {
             if (!document.getElementById('searchWrap').contains(e.target)) closeSearchDrop();
@@ -260,6 +323,8 @@
         document.getElementById('navNotice').addEventListener('click',  () => localStorage.setItem('lastVisitNotice',  Date.now() / 1000));
         document.getElementById('btnRecruit').addEventListener('click', () => localStorage.setItem('lastVisitRecruit', Date.now() / 1000));
         document.getElementById('btnNotice').addEventListener('click',  () => localStorage.setItem('lastVisitNotice',  Date.now() / 1000));
+
     </script>
+
 </body>
 </html>

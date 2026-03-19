@@ -55,6 +55,10 @@
                     <span>회원 관리</span>
                     <span class="sidebar-count" id="userCount">-</span>
                 </button>
+                <button class="sidebar-item" data-tab="members">
+                    <span class="sidebar-icon">🧑‍🤝‍🧑</span>
+                    <span>가입자 보기</span>
+                </button>
             </div>
         </aside>
 
@@ -68,7 +72,7 @@
                         <h2 class="tab-title">📋 공지 관리</h2>
                         <p class="tab-sub">공지사항을 작성하고 관리합니다</p>
                     </div>
-                    <button class="btn-primary" id="newNoticeBtn">+ 새 공지 작성</button>
+                    {% if is_superadmin %}<button class="btn-primary" id="newNoticeBtn">+ 새 공지 작성</button>{% endif %}
                 </div>
                 <div class="notice-list" id="noticeList">
                     <div class="admin-loading">불러오는 중...</div>
@@ -103,6 +107,18 @@
                             <tr><td colspan="7" class="admin-loading">불러오는 중...</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </section>
+            <!-- ── 가입자 보기 탭 ── -->
+            <section class="admin-tab" id="tab-members">
+                <div class="tab-header">
+                    <div>
+                        <h2 class="tab-title">🧑‍🤝‍🧑 가입자 보기</h2>
+                        <p class="tab-sub">가입된 모든 멤버를 확인하고 DM을 보낼 수 있습니다</p>
+                    </div>
+                </div>
+                <div class="members-grid" id="membersGrid">
+                    <div class="admin-loading">불러오는 중...</div>
                 </div>
             </section>
         </main>
@@ -162,7 +178,7 @@
         </div>
     </div>
 
-    <script>const CURRENT_ADMIN_ID = {{ current_user | tojson }};</script>
+    <script>const CURRENT_ADMIN_ID = {{ current_user | tojson }}; const IS_SUPERADMIN = {{ is_superadmin | tojson }}; const IS_OWNER = {{ is_owner | tojson }};</script>
     <script src="/static/js/dm.js"></script>
     <script src="/static/js/admin.js"></script>
     <script>

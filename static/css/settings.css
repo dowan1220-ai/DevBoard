@@ -217,6 +217,65 @@ body {
     transform: none;
 }
 
+/* ── 다크모드 ── */
+body.dark {
+    background: #1a1a2e;
+}
+body.dark .topbar {
+    background-color: rgba(30, 30, 50, 0.95);
+}
+body.dark .page-title,
+body.dark .welcome {
+    color: #e0e0e0;
+}
+body.dark .back-btn {
+    color: #bbb;
+    background: rgba(255,255,255,0.08);
+}
+body.dark .back-btn:hover {
+    background: rgba(255,255,255,0.15);
+}
+body.dark .settings-card {
+    background: rgba(36, 36, 56, 0.97);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+body.dark .section-title {
+    color: #e0e0e0;
+}
+body.dark .section-desc {
+    color: #888;
+}
+body.dark .divider {
+    background: #333;
+}
+body.dark .info-row {
+    background: rgba(255,255,255,0.06);
+}
+body.dark .info-label {
+    color: #aaa;
+}
+body.dark .info-value {
+    color: #e0e0e0;
+}
+body.dark .nickname-input {
+    background: rgba(255,255,255,0.07);
+    border-color: #444;
+    color: #e0e0e0;
+}
+body.dark .nickname-input:focus {
+    border-color: #8fcbff;
+}
+body.dark .char-count {
+    color: #666;
+}
+body.dark .logout-btn {
+    background-color: rgba(143,203,255,0.2);
+    color: #8fcbff;
+}
+body.dark .logout-btn:hover {
+    background-color: rgba(143,203,255,0.35);
+}
+
 /* ── 성공 토스트 ── */
 .success-toast {
     background: #4caf50;
@@ -232,3 +291,21 @@ body {
 .success-toast.hidden {
     display: none;
 }
+
+/* ── 사이트 푸터 ── */
+.site-footer {
+    text-align: center;
+    padding: 24px 16px;
+    margin-top: 40px;
+    border-top: 1px solid rgba(0,0,0,0.08);
+    font-size: 13px;
+}
+.site-footer a {
+    color: #888;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.site-footer a:hover { color: #667eea; }
+.dark .site-footer { border-top-color: rgba(255,255,255,0.08); }
+.dark .site-footer a { color: #666; }
+.dark .site-footer a:hover { color: #a78bfa; }

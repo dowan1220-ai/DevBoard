@@ -51,13 +51,20 @@
             color: #aaa;
             margin-top: -10px;
         }
+        .error-msg {
+            color: #e53e3e;
+            font-size: 13px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
+    <script>if(localStorage.getItem('theme')==='dark')document.body.classList.add('dark');</script>
     <box>
         <div class="login">
             <h2 class="gg">닉네임 설정</h2>
             <p class="nickname-desc">서비스에서 사용할 닉네임을 입력해주세요</p>
+            {% if error %}<p class="error-msg">{{ error }}</p>{% endif %}
             <form action="/set_nickname" method="POST" class="nickname-form">
                 <input
                     type="text"
