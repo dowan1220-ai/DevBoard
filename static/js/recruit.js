@@ -536,14 +536,12 @@ function createProfileCard(profile) {
         });
     }
     // 다른 사람 프로필 클릭 → DM 열기 + 조회 알림
-    if (!profile.is_mine) {
-        card.style.cursor = 'pointer';
-        card.addEventListener('click', (e) => {
-            if (e.target.closest('button')) return;
-            e.stopPropagation(); // 바깥 클릭 닫기 리스너가 DM을 즉시 닫지 않도록
-            openDmFromProfile(profile);
-        });
-    }
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        e.stopPropagation();
+        window.location.href = '/user/' + encodeURIComponent(profile.owner_id);
+    });
 
     const interestBtn = card.querySelector('.recruit-interest-btn:not(.sent)');
     if (interestBtn) {
@@ -608,25 +606,21 @@ function createTeamCard(team) {
 
     if (team.is_mine) {
         card.innerHTML = `
-            <div class="tc-inner">
-                <div class="mine-badge">내 팀</div>
-                ${team.team_image ? `<div class="team-card-img-wrap"><img class="team-card-img" src="${team.team_image}" alt="팀 이미지"></div>` : ''}
-                <div class="team-field-badge" style="background:${s.bg};color:${s.color};">${s.emoji} ${escapeHtml(team.dev_field || '기타')}</div>
-                <div class="team-name">${escapeHtml(team.name)}</div>
-                <div class="team-leader">👑 ${escapeHtml(team.leader_name)}</div>
-                ${team.description ? `<div class="team-desc">${escapeHtml(team.description)}</div>` : ''}
-                <div class="card-divider"></div>
-                <div class="team-members-label">
-                    <span>팀원</span>
-                    <span class="team-member-count">${memberCount}/${team.max_members}명</span>
-                </div>
-                <div class="team-member-slots">${memberAvatars}${emptySlots}</div>
-                ${actionHtml}
+            <div class="mine-badge">내 팀</div>
+            <button class="card-edit-btn" title="수정">✏️</button>
+            <button class="card-delete-btn" title="삭제">✕</button>
+            ${team.team_image ? `<div class="team-card-img-wrap"><img class="team-card-img" src="${team.team_image}" alt="팀 이미지"></div>` : ''}
+            <div class="team-field-badge" style="background:${s.bg};color:${s.color};">${s.emoji} ${escapeHtml(team.dev_field || '기타')}</div>
+            <div class="team-name">${escapeHtml(team.name)}</div>
+            <div class="team-leader">👑 ${escapeHtml(team.leader_name)}</div>
+            ${team.description ? `<div class="team-desc">${escapeHtml(team.description)}</div>` : ''}
+            <div class="card-divider"></div>
+            <div class="team-members-label">
+                <span>팀원</span>
+                <span class="team-member-count">${memberCount}/${team.max_members}명</span>
             </div>
-            <div class="tc-side">
-                <button class="tc-edit-btn" title="수정">✏️<span>수정</span></button>
-                <button class="tc-delete-btn" title="삭제">🗑️<span>삭제</span></button>
-            </div>
+            <div class="team-member-slots">${memberAvatars}${emptySlots}</div>
+            ${actionHtml}
         `;
     } else {
         card.innerHTML = `
@@ -667,14 +661,14 @@ function createTeamCard(team) {
             else { alert(data.error || '오류 발생'); leaveBtn.disabled = false; leaveBtn.textContent = '나가기'; }
         });
     }
-    const tcEditBtn = card.querySelector('.tc-edit-btn');
+    const tcEditBtn = card.querySelector('.card-edit-btn');
     if (tcEditBtn) {
         tcEditBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             openTeamEditModal(team);
         });
     }
-    const tcDeleteBtn = card.querySelector('.tc-delete-btn');
+    const tcDeleteBtn = card.querySelector('.card-delete-btn');
     if (tcDeleteBtn) {
         tcDeleteBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -711,8 +705,6 @@ async function loadProfiles() {
         grid.innerHTML = '<div class="loading">로딩 실패. 새로고침해주세요.</div>';
     }
 }
-
-// openTeamEditModal은 openTeamModal 섹션에 통합됨
 
 // ─── 알림 ───
 const bellBtn       = document.getElementById('bellBtn');
@@ -791,16 +783,6 @@ document.addEventListener('click', e => {
 loadNotifications();
 
 // ─── DM (공유 모듈 dm.js 에서 처리) ───
-const dmViewedSet = new Set();
-
-function openDmFromProfile(profile) {
-    // 조회 알림 (한 번만)
-    if (!dmViewedSet.has(profile.id)) {
-        dmViewedSet.add(profile.id);
-        fetch(`/api/profiles/${profile.id}/view`, { method: 'POST' }).catch(() => {});
-    }
-    window.DM.openChat(profile.owner_id, profile.nickname || profile.name);
-}
 
 // ─── 검색 필터 렌더 ───
 function showEmpty(empty, query, count) {

@@ -59,6 +59,11 @@
                     <span class="sidebar-icon">🧑‍🤝‍🧑</span>
                     <span>가입자 보기</span>
                 </button>
+                <button class="sidebar-item" data-tab="messages">
+                    <span class="sidebar-icon">💬</span>
+                    <span>메시지 관리</span>
+                    <span class="sidebar-count" id="msgCount">-</span>
+                </button>
             </div>
         </aside>
 
@@ -119,6 +124,35 @@
                 </div>
                 <div class="members-grid" id="membersGrid">
                     <div class="admin-loading">불러오는 중...</div>
+                </div>
+            </section>
+
+            <!-- ── 메시지 관리 탭 ── -->
+            <section class="admin-tab" id="tab-messages">
+                <div class="tab-header">
+                    <div>
+                        <h2 class="tab-title">💬 메시지 관리</h2>
+                        <p class="tab-sub">모든 DM 메시지를 확인하고 삭제할 수 있습니다</p>
+                    </div>
+                    <div class="user-search-wrap">
+                        <input type="text" class="user-search-input" id="msgSearchInput" placeholder="닉네임·내용 검색...">
+                    </div>
+                </div>
+                <div class="user-table-wrap">
+                    <table class="user-table" id="msgTable">
+                        <thead>
+                            <tr>
+                                <th>보낸 사람</th>
+                                <th>받는 사람</th>
+                                <th>내용</th>
+                                <th>시간</th>
+                                <th>삭제</th>
+                            </tr>
+                        </thead>
+                        <tbody id="msgTableBody">
+                            <tr><td colspan="5" class="admin-loading">불러오는 중...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </section>
         </main>

@@ -320,6 +320,9 @@ body.dark .user-table { background: rgba(35,35,60,0.9); border-color: rgba(255,2
 body.dark .user-table th { background: rgba(91,94,247,0.12); color: #bbb; border-color: rgba(255,255,255,0.07); }
 body.dark .user-table td { color: #ccc; border-color: rgba(255,255,255,0.05); }
 body.dark .user-table tr:hover td { background: rgba(255,255,255,0.03); }
+body.dark .user-nickname { color: #e8e8ff; }
+body.dark .user-id-cell { color: #777; }
+body.dark .user-table-wrap { background: rgba(35,35,60,0.9); }
 body.dark .notif-dropdown { background: #23233a; border-color: rgba(255,255,255,0.08); }
 body.dark .notif-row { border-color: rgba(255,255,255,0.05); }
 body.dark .notif-msg { color: #ccc; }

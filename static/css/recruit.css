@@ -5,9 +5,10 @@
 }
 
 body {
-    background-image: url(/static/images/background.png);
-    background-size: cover;
-    background-position: center;
+    background:
+        radial-gradient(ellipse 80% 60% at 15% 20%, rgba(255, 150, 220, 0.7) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 50% at 85% 15%, rgba(150, 175, 255, 0.7) 0%, transparent 65%),
+        linear-gradient(150deg, #e8aaf0 0%, #c8b0f8 40%, #a8c4f8 100%);
     background-attachment: fixed;
     min-height: 100vh;
     font-family: sans-serif;
@@ -365,95 +366,16 @@ body.dark .board-search-wrap:focus-within {
     border: 2px solid rgba(143, 203, 255, 0.6);
 }
 
-/* 팀 카드에서 mine-badge가 버튼과 겹치지 않게 */
+/* ── 내 팀 카드 (프로필 카드 스타일) ── */
+.card-team.card-mine {
+    overflow: visible;
+}
 .card-team .mine-badge {
     right: 12px;
+    transition: transform 0.2s ease;
 }
-
-/* ── 내 팀 카드 슬라이드 액션 패널 ── */
-.card-team.card-mine {
-    overflow: hidden;
-    display: flex;
-    flex-direction: row;
-    gap: 0;
-    padding: 0;
-}
-.tc-inner {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 20px;
-    min-width: 0;
-    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.card-team.card-mine:hover .tc-inner {
-    transform: translateX(-6px);
-}
-.tc-side {
-    width: 0;
-    overflow: hidden;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 12px;
-    background: linear-gradient(180deg, rgba(91,94,247,0.07) 0%, rgba(224,85,122,0.07) 100%);
-    border-left: 1.5px solid transparent;
-    transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-                border-color 0.28s;
-}
-.card-team.card-mine:hover .tc-side {
-    width: 76px;
-    border-color: rgba(91,94,247,0.15);
-}
-.tc-edit-btn,
-.tc-delete-btn {
-    border: none;
-    border-radius: 12px;
-    width: 52px;
-    padding: 8px 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    font-size: 18px;
-    cursor: pointer;
-    transition: background 0.18s, transform 0.15s;
-    white-space: nowrap;
-}
-.tc-edit-btn span,
-.tc-delete-btn span {
-    font-size: 11px;
-    font-weight: 600;
-}
-.tc-edit-btn {
-    background: rgba(91,94,247,0.1);
-    color: #5b5ef7;
-}
-.tc-edit-btn:hover {
-    background: rgba(91,94,247,0.22);
-    transform: scale(1.06);
-}
-.tc-delete-btn {
-    background: rgba(229,57,53,0.1);
-    color: #e53935;
-}
-.tc-delete-btn:hover {
-    background: rgba(229,57,53,0.22);
-    transform: scale(1.06);
-}
-body.dark .tc-side {
-    background: linear-gradient(180deg, rgba(91,94,247,0.12) 0%, rgba(224,85,122,0.1) 100%);
-}
-body.dark .tc-edit-btn {
-    background: rgba(91,94,247,0.18);
-    color: #888cf0;
-}
-body.dark .tc-delete-btn {
-    background: rgba(229,57,53,0.18);
-    color: #f47272;
+.card-team.card-mine:hover .mine-badge {
+    transform: translateX(-72px);
 }
 
 /* ── 삭제 버튼 ── */
@@ -608,11 +530,6 @@ body.dark .tc-delete-btn {
     background: rgba(91,94,247,0.12);
     border-color: #5b5ef7;
     color: #5b5ef7;
-}
-
-/* ── 구직 카드 ── */
-.card-job {
-    border-top: 3px solid rgba(91,94,247,0.4);
 }
 
 .dev-field-badge {
@@ -783,36 +700,6 @@ body.dark .team-leave-btn { border-color: rgba(224,160,32,0.5); color: #e0c060; 
 }
 body.dark .team-field-select-btn { background: #2a2a3e; border-color: #444; color: #aaa; }
 body.dark .team-field-select-btn.active { background: #667eea; border-color: #667eea; color: #fff; }
-.team-edit-btn {
-    padding: 9px 14px;
-    border: 1.5px solid #43b89c;
-    border-radius: 12px;
-    background: rgba(67,184,156,0.08);
-    color: #43b89c;
-    font-size: 13px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-.team-edit-btn:hover { background: rgba(67,184,156,0.16); }
-.edit-field-btn {
-    padding: 7px 14px;
-    border: 1.5px solid #ddd;
-    border-radius: 20px;
-    background: #f5f5f5;
-    color: #555;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-.edit-field-btn.active {
-    background: #667eea;
-    border-color: #667eea;
-    color: #fff;
-}
-body.dark .edit-field-btn { background: #2a2a3e; border-color: #444; color: #aaa; }
-body.dark .edit-field-btn.active { background: #667eea; border-color: #667eea; color: #fff; }
-body.dark .team-edit-btn { border-color: #43b89c; color: #43b89c; background: rgba(67,184,156,0.08); }
 .team-manage-btn {
     flex: 1;
     padding: 9px;
@@ -827,18 +714,6 @@ body.dark .team-edit-btn { border-color: #43b89c; color: #43b89c; background: rg
     position: relative;
 }
 .team-manage-btn:hover { background: rgba(91,94,247,0.16); }
-.team-delete-btn {
-    padding: 9px 14px;
-    border: 1.5px solid #e05555;
-    border-radius: 12px;
-    background: rgba(224,85,85,0.06);
-    color: #e05555;
-    font-size: 13px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-.team-delete-btn:hover { background: rgba(224,85,85,0.14); }
 .pending-badge {
     display: inline-block;
     background: #e05555;
@@ -1735,7 +1610,6 @@ body.dark .team-pending-badge { background: rgba(224,160,32,0.15); color: #e0c06
 body.dark .team-full-badge    { background: rgba(255,255,255,0.05); color: #666; }
 body.dark .team-rejected-badge { background: rgba(224,85,85,0.12); color: #e06060; }
 body.dark .team-manage-btn    { border-color: rgba(155,158,247,0.5); color: #9b9ef7; background: rgba(91,94,247,0.1); }
-body.dark .team-delete-btn    { border-color: rgba(224,85,85,0.4); color: #e06060; background: rgba(224,85,85,0.06); }
 body.dark .pending-row        { background: rgba(255,255,255,0.04); border-bottom-color: rgba(255,255,255,0.06); }
 body.dark .pending-name       { color: #ddd; }
 body.dark .card-divider       { border-color: rgba(255,255,255,0.07); }

@@ -5,9 +5,11 @@
 }
 
 body {
-    background-image: url(/static/images/background.png);
-    background-size: cover;
-    background-position: center;
+    background:
+        radial-gradient(ellipse 80% 60% at 15% 20%, rgba(255, 150, 220, 0.7) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 50% at 85% 15%, rgba(150, 175, 255, 0.7) 0%, transparent 65%),
+        linear-gradient(150deg, #e8aaf0 0%, #c8b0f8 40%, #a8c4f8 100%);
+    background-attachment: fixed;
     min-height: 100vh;
     font-family: sans-serif;
 }
@@ -214,6 +216,8 @@ body.dark .notif-unread { background: rgba(91,94,247,0.12); }
     flex-wrap: nowrap;
     flex-shrink: 0;
     white-space: nowrap;
+    flex: 1;
+    justify-content: flex-end;
 }
 
 .login-hint-btn {
@@ -232,22 +236,6 @@ body.dark .notif-unread { background: rgba(91,94,247,0.12); }
     border-color: #aaa;
 }
 
-.settings-btn {
-    text-decoration: none;
-    color: #555;
-    font-size: 14px;
-    font-weight: bold;
-    padding: 8px 16px;
-    border-radius: 12px;
-    border: 1.5px solid #ccc;
-    transition: background-color 0.2s, border-color 0.2s;
-    white-space: nowrap;
-}
-
-.settings-btn:hover {
-    background-color: rgba(255, 255, 255, 0.6);
-    border-color: #aaa;
-}
 
 /* 사이트 로고 */
 .topbar-left {
@@ -255,11 +243,6 @@ body.dark .notif-unread { background: rgba(91,94,247,0.12); }
     align-items: center;
     gap: 12px;
     flex: 1;
-}
-
-.topbar-right {
-    flex: 1;
-    justify-content: flex-end;
 }
 
 .site-logo {
@@ -500,10 +483,8 @@ body.dark .nav-btn {
     color: #ddd;
 }
 
-body.dark .settings-btn,
 body.dark .login-hint-btn {
     color: #aaa;
-    border-color: #444;
 }
 
 body.dark .footer {

@@ -36,6 +36,8 @@ class User(SQLModel, table=True):
     is_admin: bool = Field(default=False)
     is_superadmin: bool = Field(default=False)
     is_owner: bool = Field(default=False)
+    discord_id: Optional[str] = Field(default=None)
+    github_id: Optional[str] = Field(default=None)
 
 
 class Notice(SQLModel, table=True):
@@ -153,6 +155,8 @@ with app.app_context():
             "ALTER TABLE user ADD COLUMN google_id VARCHAR",
             "CREATE TABLE IF NOT EXISTS noticecomment (id INTEGER PRIMARY KEY AUTOINCREMENT, notice_id INTEGER NOT NULL, author_id VARCHAR NOT NULL, author_nickname VARCHAR DEFAULT '', content VARCHAR DEFAULT '', created_at REAL DEFAULT 0.0)",
             "ALTER TABLE team ADD COLUMN team_image TEXT DEFAULT NULL",
+            "ALTER TABLE user ADD COLUMN discord_id VARCHAR DEFAULT NULL",
+            "ALTER TABLE user ADD COLUMN github_id VARCHAR DEFAULT NULL",
         ):
             try:
                 conn.execute(text(col_sql))
@@ -296,7 +300,7 @@ def set_nickname_submit():
 def home():
     show_toast = session.pop('show_login_toast', False)
     nickname = session.get('nickname', session.get('user_id', '게스트'))
-    return render_template('main.html', user_id=nickname, show_toast=show_toast, is_admin=check_admin())
+    return render_template('main.html', user_id=nickname, show_toast=show_toast, is_admin=check_admin(), raw_user_id=session.get('user_id',''))
 
 @app.route('/logout')
 def logout():
@@ -311,8 +315,24 @@ def logout():
 def settings():
     if 'user_id' not in session:
         return redirect(url_for('login_page'))
-    nickname = session.get('nickname', session['user_id'])
-    return render_template('settings.html', user_id=session['user_id'], nickname=nickname)
+    return redirect(url_for('user_profile', target_username=session['user_id']))
+
+
+@app.route('/update_social', methods=['POST'])
+def update_social():
+    if 'user_id' not in session:
+        return {"error": "Unauthorized"}, 401
+    discord_id = request.form.get('discord_id', '').strip()
+    github_id  = request.form.get('github_id',  '').strip()
+    with Session(engine) as db_session:
+        user = db_session.exec(select(User).where(User.username == session['user_id'])).first()
+        if not user:
+            return {"error": "사용자를 찾을 수 없습니다."}, 404
+        user.discord_id = discord_id or None
+        user.github_id  = github_id  or None
+        db_session.add(user)
+        db_session.commit()
+    return {"success": True}
 
 
 @app.route('/update_nickname', methods=['POST'])
@@ -358,7 +378,14 @@ def members_page():
     if 'user_id' not in session:
         return redirect(url_for('login_page'))
     nickname = session.get('nickname', session['user_id'])
-    return render_template('members.html', user_id=nickname, is_admin=check_admin())
+    return render_template('members.html', user_id=nickname, is_admin=check_admin(), raw_user_id=session.get('user_id',''))
+
+
+@app.route('/api/session-check')
+def session_check():
+    if 'user_id' not in session:
+        return {"ok": False}, 401
+    return {"ok": True}
 
 
 @app.route('/api/members', methods=['GET'])
@@ -383,7 +410,7 @@ def get_members():
 @app.route('/notice')
 def notice():
     nickname = session.get('nickname', session.get('user_id', '게스트'))
-    return render_template('notice.html', user_id=nickname, current_user=session.get('user_id', ''), is_admin=check_admin())
+    return render_template('notice.html', user_id=nickname, current_user=session.get('user_id', ''), is_admin=check_admin(), raw_user_id=session.get('user_id',''))
 
 
 @app.route('/api/notices', methods=['GET'])
@@ -684,6 +711,42 @@ def admin_delete_user(target_id):
     return {"success": True}
 
 
+# ───────────── 관리자 메시지 관리 ─────────────
+@app.route('/api/admin/messages', methods=['GET'])
+def admin_get_messages():
+    if not check_admin():
+        return {"error": "권한이 없습니다."}, 403
+    with Session(engine) as db_session:
+        messages = db_session.exec(
+            select(DirectMessage).order_by(DirectMessage.created_at.desc())
+        ).all()
+        nick_map = {u.username: (u.nickname or u.username)
+                    for u in db_session.exec(select(User)).all()}
+        result = [{
+            "id": m.id,
+            "sender_id": m.sender_id,
+            "sender_nick": nick_map.get(m.sender_id, m.sender_id),
+            "receiver_id": m.receiver_id,
+            "receiver_nick": nick_map.get(m.receiver_id, m.receiver_id),
+            "message": m.message,
+            "created_at": m.created_at,
+        } for m in messages]
+    return {"messages": result}
+
+
+@app.route('/api/admin/messages/<int:msg_id>', methods=['DELETE'])
+def admin_delete_message(msg_id):
+    if not check_admin():
+        return {"error": "권한이 없습니다."}, 403
+    with Session(engine) as db_session:
+        msg = db_session.get(DirectMessage, msg_id)
+        if not msg:
+            return {"error": "메시지를 찾을 수 없습니다."}, 404
+        db_session.delete(msg)
+        db_session.commit()
+    return {"success": True}
+
+
 # ───────────── 닉네임 검색 ─────────────
 @app.route('/api/search')
 def api_search():
@@ -772,7 +835,10 @@ def user_profile(target_username):
         profiles=profile_list,
         teams=team_list,
         is_self=is_self,
-        is_admin=check_admin())
+        is_admin=check_admin(),
+        discord_id=target.discord_id or '',
+        github_id=target.github_id or '',
+        raw_user_id=session.get('user_id', ''))
 
 
 @app.route('/recruit')
@@ -780,7 +846,7 @@ def recruit():
     if 'user_id' not in session:
         return redirect(url_for('index'))
     nickname = session.get('nickname', session['user_id'])
-    return render_template('recruit.html', user_id=nickname, is_admin=check_admin())
+    return render_template('recruit.html', user_id=nickname, is_admin=check_admin(), raw_user_id=session.get('user_id',''))
 
 
 @app.route('/api/profiles', methods=['GET'])
@@ -1385,4 +1451,4 @@ def delete_profile(profile_id):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=9000, debug=True)
+    app.run(host='0.0.0.0', port=4500, debug=True)

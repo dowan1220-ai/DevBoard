@@ -10,6 +10,7 @@ document.querySelectorAll('.sidebar-item').forEach(btn => {
         document.getElementById(`tab-${tab}`).classList.add('active');
         if (tab === 'users') loadUsers();
         if (tab === 'members') loadMembers();
+        if (tab === 'messages') loadMessages();
     });
 });
 
@@ -324,6 +325,73 @@ async function loadMembers() {
     } catch {
         grid.innerHTML = '<div class="admin-loading">로딩 실패</div>';
     }
+}
+
+// ── 메시지 관리 ──
+let allMessages = [];
+
+async function loadMessages() {
+    const tbody = document.getElementById('msgTableBody');
+    tbody.innerHTML = '<tr><td colspan="5" class="admin-loading">불러오는 중...</td></tr>';
+    try {
+        const res  = await fetch('/api/admin/messages');
+        const data = await res.json();
+        allMessages = data.messages || [];
+        document.getElementById('msgCount').textContent = allMessages.length;
+        renderMessages(allMessages);
+    } catch {
+        tbody.innerHTML = '<tr><td colspan="5" class="admin-loading">로딩 실패</td></tr>';
+    }
+}
+
+function renderMessages(list) {
+    const tbody = document.getElementById('msgTableBody');
+    if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#aaa;padding:24px;">메시지가 없습니다</td></tr>';
+        return;
+    }
+    tbody.innerHTML = '';
+    list.forEach(m => {
+        const date = m.created_at ? new Date(m.created_at * 1000).toLocaleString('ko-KR', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '-';
+        const tr = document.createElement('tr');
+        tr.dataset.id = m.id;
+        tr.innerHTML = `
+            <td><strong>${escHtml(m.sender_nick)}</strong><br><span style="font-size:11px;color:#aaa;">${escHtml(m.sender_id)}</span></td>
+            <td><strong>${escHtml(m.receiver_nick)}</strong><br><span style="font-size:11px;color:#aaa;">${escHtml(m.receiver_id)}</span></td>
+            <td style="max-width:300px;word-break:break-all;">${escHtml(m.message)}</td>
+            <td style="white-space:nowrap;font-size:12px;color:#888;">${date}</td>
+            <td><button class="msg-del-btn" data-id="${m.id}" style="background:rgba(229,57,53,0.1);color:#e53935;border:none;border-radius:8px;padding:5px 12px;cursor:pointer;font-weight:600;">삭제</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll('.msg-del-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!confirm('이 메시지를 삭제할까요?')) return;
+            const id = btn.dataset.id;
+            const res = await fetch(`/api/admin/messages/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                allMessages = allMessages.filter(m => m.id != id);
+                document.getElementById('msgCount').textContent = allMessages.length;
+                btn.closest('tr').remove();
+            }
+        });
+    });
+}
+
+// 메시지 검색
+const msgSearchInput = document.getElementById('msgSearchInput');
+if (msgSearchInput) {
+    msgSearchInput.addEventListener('input', () => {
+        const q = msgSearchInput.value.trim().toLowerCase();
+        if (!q) { renderMessages(allMessages); return; }
+        renderMessages(allMessages.filter(m =>
+            m.sender_nick.toLowerCase().includes(q) ||
+            m.receiver_nick.toLowerCase().includes(q) ||
+            m.message.toLowerCase().includes(q)
+        ));
+    });
 }
 
 // ── 초기 로드 ──

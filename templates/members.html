@@ -63,8 +63,12 @@
     <div class="topbar fade-up" style="--fu-delay:0s">
         <div class="topbar-left">
             <a href="/main" class="site-logo">💻 DevBoard</a>
-            <span class="page-title">멤버 보기</span>
         </div>
+        <nav class="topbar-nav">
+            <a href="/recruit" class="nav-link">구인 게시판</a>
+            <a href="/notice" class="nav-link">공지사항</a>
+            <a href="/members" class="nav-link active">멤버 보기</a>
+        </nav>
         <div class="topbar-right">
             <div class="dm-wrap" id="dmWrap">
                 <button class="dm-topbar-btn" id="dmBtn" title="DM">💬<span class="dm-unread-badge hidden" id="dmBadge"></span></button>
@@ -77,6 +81,7 @@
             <a href="/admin" class="admin-link-btn">🛡️ 관리자</a>
             {% endif %}
             <span class="welcome">👋 {{ user_id }}님</span>
+            <a href="/user/{{ raw_user_id }}" class="settings-btn">👤 내 프로필</a>
             <a href="/logout" class="logout-btn">로그아웃</a>
         </div>
     </div>
@@ -171,5 +176,11 @@
         });
     </script>
     <script src="/static/js/notif.js"></script>
+<script>
+setInterval(async () => {
+    const res = await fetch('/api/session-check');
+    if (res.status === 401 || res.status === 403) location.href = '/login';
+}, 30000);
+</script>
 </body>
 </html>

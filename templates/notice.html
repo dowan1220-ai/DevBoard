@@ -26,6 +26,9 @@
             </div>
         </div>
         <div class="topbar-right">
+            <div class="dm-wrap" id="dmWrap">
+                <button class="dm-topbar-btn" id="dmBtn" title="DM">💬<span class="dm-unread-badge hidden" id="dmBadge"></span></button>
+            </div>
             <div class="notif-wrap" id="notifWrap">
                 <button class="bell-btn" id="bellBtn">🔔<span class="notif-badge hidden" id="notifBadge"></span></button>
             </div>
@@ -36,7 +39,7 @@
             {% if user_id == '게스트' %}
             <a href="/login_page" class="login-hint-btn">로그인이 안되어있다면?</a>
             {% else %}
-            <a href="/settings" class="settings-btn">⚙️ 프로필 편집</a>
+            <a href="/user/{{ raw_user_id }}" class="settings-btn">👤 내 프로필</a>
             <a href="/logout" class="logout-btn">로그아웃</a>
             {% endif %}
         </div>
@@ -259,8 +262,24 @@
 
     </script>
     <script src="/static/js/notif.js"></script>
+    <div class="dm-overlay" id="dmOverlay"></div>
+    <div class="dm-panel" id="dmPanel">
+        <div class="dm-panel-header">
+            <button class="dm-back-btn hidden" id="dmBackBtn">←</button>
+            <span class="dm-panel-title" id="dmPanelTitle">💬 메시지</span>
+            <button class="dm-panel-close" id="dmPanelClose">✕</button>
+        </div>
+        <div class="dm-panel-body" id="dmPanelBody"></div>
+    </div>
+    <script src="/static/js/dm.js"></script>
     <footer class="site-footer">
         <a href="https://github.com/dowan1220-ai/DevBoard" target="_blank" rel="noopener">📂 오픈소스 코드</a>
     </footer>
+<script>
+setInterval(async () => {
+    const res = await fetch('/api/session-check');
+    if (res.status === 401 || res.status === 403) location.href = '/login';
+}, 30000);
+</script>
 </body>
 </html>
